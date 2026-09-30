@@ -1,2 +1,117 @@
-# CIVIL-Senawave
-Civil design work for Senawave internal app prototype
+# CIVIL-Senawave — Senawave Civil Tracker
+
+Internal web tool for the fiber-optic civil design work I do for **Senawave** (VAIX, Inc. dba Senawave
+Communications, Salt Lake City) in northern Utah: project and plan-set tracking, notes and redlines, the
+Plan Production Guide as searchable reference, and the verified background on the company and the people
+I work with. It is a prototype meant for me first, and to be shared with David and Jesse later.
+
+**Stack:** Vite 7 · React 19 · TypeScript · React Router 7. No backend. Data is local-first
+(browser storage) with optional Google sign-in and a Google Drive JSON sync file. No UI framework, no
+tracking, one 450 KB bundle.
+
+## What is in the tool
+
+| Page | What it does |
+|---|---|
+| **Dashboard** | Active projects with workflow / QC progress, due-soon list (plan sets, permits, actions), recent notes, pipeline strip. |
+| **Projects** | One project = one drawing = one plan set. Titleblock fields (the ones SENATITLE writes), CRS, route length, funding (BEAD…), Drive/ArcGIS links. Tabs: **Sheet index** tracker (PageNumber, Angle, CellFt, ClipX0/X1, MatchL/R/T/B, per-sheet align → clip → side panel → titleblock → QC, with index checks that mirror guide 4.6/6.4), **Workflow** (guide 1.4, tickable), **QC checklist** (guide 11), **Permits** (municipal / county / UDOT / railroad / Blue Stakes rounds), **Notes**, **Time**. |
+| **Notes & log** | Running log: notes, action items, PE redlines, agency comments, meetings, decisions, issues. Tags, due dates, tied to a project and a sheet. |
+| **Time log** | Hours per project, billable / invoiced flags, CSV export for the Gusto contractor invoice. |
+| **Plan Production Guide** | Rev 5 as tables: the numbers, whole-job checklist, ArcGIS scripts and options, BricsCAD import, per-sheet recipe, side panel / vicinity / basemaps, titleblocks, QC, troubleshooting, all 34 SENA commands, layer standard with colour swatches, symbol library (with the symbol sheet image), old-layer migration map, maintenance rules, and a calculator (sheets per run, clip rectangle, text heights, symbol scale). |
+| **Team & company** | People cards with verified / partly verified / unverified badges and sources (David Bradshaw verified; Jesse Montgomery not found publicly — to confirm), Senawave facts with sources, BEAD award, franchise agreements by city, service area, and the original Indeed PE / Engineer-of-Record posting with what it implies for the design seat. |
+| **Tools & integrations** | Quick links (Drive, Gusto, BricsCAD, ArcGIS, UDOT, Blue Stakes, UBC, DOPL), Google Drive layout, Gusto invoicing notes, BricsCAD and ArcGIS Pro setup checklists from the guide, agencies and permit types. |
+| **Settings** | Google sign-in, owner and allowed emails, hourly rate, theme, Drive sync (folder, scope, shared file id, auto-sync), JSON export / import (merge or replace), delete sample data, reset. |
+
+The sample project (`26-0001 SAMPLE — Brigham City north corridor`) is seeded so nothing is empty on first
+open. Delete it from Settings once real work is in.
+
+## Run it
+
+```bash
+npm install
+npm run dev          # http://localhost:5173
+npm run build        # typecheck + production build into dist/
+npm run preview      # serve dist/ on :4173
+npm test             # vitest (merge logic, sheet-index checks, guide arithmetic)
+```
+
+Node 20+ required. With no Google client id configured the app runs in **offline mode**: click *Continue
+offline* on the sign-in screen and everything is stored in that browser's localStorage. Export JSON from
+Settings before clearing browser data.
+
+## Google sign-in and Drive sync (one-time setup)
+
+The tool uses Google Identity Services (OAuth 2.0 token flow) straight from the browser; there is no server
+and no secret. The Drive sync keeps one file, `senawave-tracker.json`, in a folder in the signed-in
+account's My Drive and merges record-by-record (newest wins) on every sync.
+
+1. Google Cloud Console → create a project (e.g. "Senawave Tracker").
+2. **APIs & Services → Library** → enable **Google Drive API**.
+3. **APIs & Services → OAuth consent screen** → External → fill the app name and your email → add scopes
+   `openid`, `email`, `profile`, `https://www.googleapis.com/auth/drive.file` (add
+   `…/auth/drive` only if you will use a shared team file, see below) → **Test users**: add your Gmail, and
+   later David's and Jesse's. Leave the app in *Testing*; with test users nothing needs Google verification.
+4. **APIs & Services → Credentials → Create credentials → OAuth client ID → Web application**.
+   Authorized JavaScript origins: `http://localhost:5173`, `http://localhost:4173`, and the URL you host at
+   (for GitHub Pages: `https://<user>.github.io`). No redirect URI is needed for the token flow.
+5. Copy the client id into `.env.local`:
+   ```
+   VITE_GOOGLE_CLIENT_ID=1234567890-abc.apps.googleusercontent.com
+   ```
+   then `npm run dev` / `npm run build`.
+6. Sign in → Settings → **Sync now**. The folder *Senawave Tracker* and the JSON file are created in your
+   Drive. Turn on auto-sync if you want edits pushed 20 s after you stop typing.
+
+### Sharing with David and Jesse
+
+Two options, both without a server:
+
+- **Simplest (solo, multi-device):** keep scope `drive.file`. Each device signs in as you and syncs the same file.
+- **Team file:** share `senawave-tracker.json` in Drive with David and Jesse (editor). They open the tool,
+  sign in with their Google account (added as test users, and to Settings → *Also allowed*), set scope to
+  `drive` in Settings, paste the file's share link into *Sync file id or share link*, and sync. Edits merge
+  per record, newest wins; two people editing the same field within one sync window is last-writer-wins.
+
+When this outgrows a JSON file (more than three people, or you want live updates), the storage layer is
+isolated in `src/store/store.ts` + `src/lib/sync.ts`; swapping in Firestore or a small API is the intended
+next step — see `docs/architecture.md`.
+
+## Deploy (GitHub Pages)
+
+`.github/workflows/deploy.yml` builds and publishes `dist/` to GitHub Pages on every push to `main` when
+Pages is enabled for the repo (Settings → Pages → Source: GitHub Actions). Set the repository variable
+`VITE_BASE_PATH` to `/CIVIL-Senawave/` (the repo name) and the secret / variable `VITE_GOOGLE_CLIENT_ID`
+for sign-in; add the Pages origin to the OAuth client. The app uses history routing, so the workflow copies
+`index.html` to `404.html` so deep links work on Pages. Any static host works the same way.
+
+## Repository layout
+
+```
+src/
+  app/          App routes + Layout (sidebar, top bar, sync button)
+  pages/        Dashboard, Projects, ProjectDetail, Notes, TimeLog, Reference, Team, Tools, Settings, SignIn
+  components/   UI primitives, ProjectForm, NoteList, TimeTable, StatusBadge, SyncButton, Toast
+  store/        store.ts (local-first store, CRUD, import/export) · seed.ts (defaults + sample project)
+  lib/          types.ts (data model) · auth.tsx · google.ts · drive.ts · sync.ts · merge.ts · sheets.ts · ids.ts
+  data/         guide.ts (Plan Production Guide Rev 5 as data) · company.ts (verified research) · jobPosting.ts
+docs/
+  research-senawave.md         background check with sources and verification levels
+  plan-production-guide.md     Markdown transcription of the guide
+  architecture.md              data model, sync design, roadmap
+  source/                      the original .docx
+public/symbol-library.png      the symbol sheet from the guide
+```
+
+## Keeping it current
+
+- New guide revision: update `GUIDE_META` and the tables in `src/data/guide.ts`, replace the .docx under
+  `docs/source/`, regenerate `docs/plan-production-guide.md`.
+- Learned something about the team or company: edit the card in the Team page (stored in your data) or
+  the seed in `src/data/company.ts` / `src/store/seed.ts` for everyone.
+- Data model changes: bump `DATA_VERSION` in `src/lib/types.ts` and extend `migrate()` in `store.ts`.
+
+## Privacy
+
+Everything stays in your browser and, if you enable it, your own Google Drive. The only external calls are
+to Google (sign-in, Drive) when you use them. No analytics. Licence keys and passwords do not belong in the
+notes fields.
