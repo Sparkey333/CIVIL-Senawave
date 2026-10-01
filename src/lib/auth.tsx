@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { GOOGLE_CLIENT_ID, SCOPES, fetchProfile, readStoredToken, requestToken, revokeToken, storeToken, type GoogleProfile, type TokenInfo } from './google';
-import { getState, updateSettings } from '@/store/store';
+import { getState, setActor, updateSettings } from '@/store/store';
 
 export type AuthMode = 'google' | 'offline';
 
@@ -123,6 +123,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     [token, user],
   );
+
+  useEffect(() => {
+    setActor(user?.name || '');
+  }, [user]);
 
   useEffect(() => {
     // Drop a stale Google session when the client id was removed from the build.

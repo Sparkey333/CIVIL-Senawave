@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { exportJson, hasSampleData, importJson, removeSampleData, resetToSeed, updateSettings, useAppData } from '@/store/store';
+import { useEffect, useRef, useState } from 'react';
+import { exportJson, hasSampleData, importJson, listBackups, removeSampleData, resetToSeed, restoreBackup, updateSettings, useAppData } from '@/store/store';
 import { useAuth } from '@/lib/auth';
 import { parseDriveId } from '@/lib/drive';
 import { syncWithDrive } from '@/lib/sync';
@@ -16,6 +16,12 @@ export default function Settings() {
   const [importMode, setImportMode] = useState<'merge' | 'replace'>('merge');
   const [driveInput, setDriveInput] = useState(s.driveFileId);
   const [syncing, setSyncing] = useState(false);
+  // Edited as free text and committed on blur, so a newline typed between emails is not swallowed.
+  const [emailsDraft, setEmailsDraft] = useState(s.allowedEmails.join('\n'));
+  useEffect(() => setEmailsDraft(s.allowedEmails.join('\n')), [s.allowedEmails]);
+  const commitEmails = () => updateSettings({ allowedEmails: emailsDraft.split(/[\n,;]+/).map((x) => x.trim().toLowerCase()).filter(Boolean) });
+  const [backups, setBackups] = useState(() => listBackups());
+  const refreshBackups = () => setBackups(listBackups());
 
   const download = () => {
     const blob = new Blob([exportJson()], { type: 'application/json' });
@@ -70,9 +76,9 @@ export default function Settings() {
             <Field label="Owner name"><input value={s.ownerName} onChange={(e) => updateSettings({ ownerName: e.target.value })} /></Field>
             <Field label="Owner Google email"><input type="email" value={s.ownerEmail} onChange={(e) => updateSettings({ ownerEmail: e.target.value })} /></Field>
             <Field label="Also allowed (one email per line)" className="span-all" hint="Add David's and Jesse's Google emails here when you share the tool.">
-              <textarea value={s.allowedEmails.join('\n')} onChange={(e) => updateSettings({ allowedEmails: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean) })} style={{ minHeight: 70 }} />
+              <textarea value={emailsDraft} onChange={(e) => setEmailsDraft(e.target.value)} onBlur={commitEmails} style={{ minHeight: 70 }} placeholder={'david@…\njesse@…'} />
             </Field>
-            <Field label="Your hourly rate ($/h)" hint="Only used to total the time log; never leaves this file.">
+            <Field label="Your hourly rate ($/h)" hint="Totals the time log. Stays on this device: it is never written to the Drive file.">
               <input type="number" min={0} step={1} value={s.hourlyRate ?? ''} onChange={(e) => updateSettings({ hourlyRate: e.target.value === '' ? null : Number(e.target.value) })} />
             </Field>
             <Field label="Theme">
@@ -103,6 +109,12 @@ export default function Settings() {
                 <button className="btn sm ghost" onClick={() => { updateSettings({ driveFileId: '' }); setDriveInput(''); }}>Clear</button>
               </div>
             </Field>
+            <Field label="Time log in the Drive file" hint="Off = your hours and invoices stay on this device and are left out of the shared file. Turn off before sharing the file with Senawave.">
+              <select value={s.syncTimeEntries ? 'on' : 'off'} onChange={(e) => updateSettings({ syncTimeEntries: e.target.value === 'on' })}>
+                <option value="on">Included (my own devices)</option>
+                <option value="off">Kept private (shared team file)</option>
+              </select>
+            </Field>
             <Field label="Auto-sync">
               <select value={s.autoSync ? 'on' : 'off'} onChange={(e) => updateSettings({ autoSync: e.target.value === 'on' })}>
                 <option value="off">Manual (Sync button)</option>
@@ -115,7 +127,7 @@ export default function Settings() {
             {user?.mode !== 'google' && <span className="muted" style={{ fontSize: 12.5 }}>Sign in with Google to sync.</span>}
             {s.driveFileId && <a className="btn sm ghost" href={`https://drive.google.com/file/d/${s.driveFileId}/view`} target="_blank" rel="noopener noreferrer">Open file in Drive ↗</a>}
           </div>
-          <p className="faint" style={{ fontSize: 12, marginTop: 8 }}>Data last changed {fmtDateTime(data.updatedAt)}.</p>
+          <p className="faint" style={{ fontSize: 12, marginTop: 8 }}>Data last changed {fmtDateTime(data.updatedAt)}. Rate, theme, auto-sync and this device's sync settings never leave this browser; deletes travel as hidden markers so the other copy drops them too.</p>
         </Card>
 
         <Card title="Backup, import, sample data">
@@ -136,7 +148,30 @@ export default function Settings() {
             )}
             <ConfirmButton label="Reset everything to defaults" confirmLabel="Yes, wipe and reseed" onConfirm={() => { resetToSeed(true); toast('Reset to seed data (settings kept).'); }} />
           </div>
-          <p className="faint" style={{ fontSize: 12, marginTop: 8 }}>Data is stored in this browser (localStorage) and, when synced, in your Drive file. Export before clearing browser data.</p>
+          <p className="faint" style={{ fontSize: 12, marginTop: 8 }}>Data is stored in this browser (localStorage) and, when synced, in your Drive file. Export before clearing browser data. Exports include everything on this device, your rate included.</p>
+        </Card>
+
+        <Card title="Local backups" subtitle="A copy is kept once a day and before any import-replace, reset or restore. The three newest are kept in this browser." actions={<button className="btn sm ghost" onClick={refreshBackups}>Refresh</button>}>
+          {backups.length === 0 ? (
+            <p className="muted">No backups yet. One is written with the first change each day.</p>
+          ) : (
+            <div className="tbl-wrap">
+              <table className="tbl compact">
+                <thead><tr><th>Saved</th><th>Why</th><th className="num">Projects</th><th className="num">Notes</th><th /></tr></thead>
+                <tbody>
+                  {backups.map((b) => (
+                    <tr key={b.key}>
+                      <td className="nowrap">{fmtDateTime(b.savedAt)}</td>
+                      <td><Badge>{b.reason}</Badge></td>
+                      <td className="num">{b.projects}</td>
+                      <td className="num">{b.notes}</td>
+                      <td><ConfirmButton label="Restore" confirmLabel="Replace current data" className="btn sm" onConfirm={() => { const r = restoreBackup(b.key); toast(r.ok ? 'Backup restored (the data you replaced was backed up first).' : `Restore failed: ${r.error}`, r.ok ? 'ok' : 'bad'); refreshBackups(); }} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </Card>
       </div>
     </div>

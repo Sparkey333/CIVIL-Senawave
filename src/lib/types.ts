@@ -44,6 +44,8 @@ export const PERMIT_STATUSES: { id: PermitStatus; label: string }[] = [
 
 export interface Permit {
   id: string;
+  deletedAt?: string | null; // tombstone: hidden everywhere, kept so the delete syncs, purged after 90 days
+  updatedBy?: string;
   projectId: string;
   agency: PermitAgencyType;
   agencyName: string; // e.g. "UDOT Region 1", "Logan City", "Cache County"
@@ -78,6 +80,8 @@ export interface Sheet {
 
 export interface Project {
   id: string;
+  deletedAt?: string | null;
+  updatedBy?: string;
   number: string; // titleblock project number, e.g. 26-0001
   name: string;
   client: string;
@@ -119,6 +123,8 @@ export const NOTE_TYPES: { id: NoteType; label: string }[] = [
 
 export interface Note {
   id: string;
+  deletedAt?: string | null; // tombstone: hidden everywhere, kept so the delete syncs, purged after 90 days
+  updatedBy?: string;
   projectId: string | null;
   sheetNo: number | null;
   type: NoteType;
@@ -134,6 +140,8 @@ export interface Note {
 
 export interface TimeEntry {
   id: string;
+  deletedAt?: string | null; // tombstone: hidden everywhere, kept so the delete syncs, purged after 90 days
+  updatedBy?: string;
   projectId: string | null;
   date: string;
   hours: number;
@@ -146,6 +154,8 @@ export interface TimeEntry {
 
 export interface TeamMember {
   id: string;
+  deletedAt?: string | null;
+  updatedBy?: string;
   name: string;
   role: string;
   org: string;
@@ -169,7 +179,18 @@ export interface Settings {
   autoSync: boolean;
   theme: 'system' | 'light' | 'dark';
   quickLinks: { label: string; url: string }[];
+  /** Include the time log in the Drive file. Turn off before sharing the file with the client. */
+  syncTimeEntries: boolean;
 }
+
+/**
+ * Settings that stay on this device and are never written to the Drive file or an export:
+ * your rate, how this browser looks, and where this device syncs from.
+ */
+export const PRIVATE_SETTING_KEYS = ['hourlyRate', 'theme', 'autoSync', 'driveFileId', 'driveFolderName', 'driveScope', 'syncTimeEntries'] as const satisfies readonly (keyof Settings)[];
+export type PrivateSettingKey = (typeof PRIVATE_SETTING_KEYS)[number];
+
+export type EntityKind = 'projects' | 'notes' | 'permits' | 'timeEntries' | 'team';
 
 export interface AppData {
   version: number;
@@ -184,4 +205,4 @@ export interface AppData {
   scratch: Record<string, { body: string; updatedAt: string }>;
 }
 
-export const DATA_VERSION = 1;
+export const DATA_VERSION = 2;

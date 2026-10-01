@@ -28,6 +28,7 @@ export function defaultSettings(): Settings {
     autoSync: false,
     theme: 'system',
     quickLinks: DEFAULT_QUICK_LINKS,
+    syncTimeEntries: true,
   };
 }
 

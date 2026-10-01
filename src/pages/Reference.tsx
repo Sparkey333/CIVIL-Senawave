@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import * as G from '@/data/guide';
 import { Badge, Callout, Card, Swatch } from '@/components/ui';
@@ -30,6 +30,10 @@ export default function Reference() {
   const [sp] = useSearchParams();
   const tab = (TABS.some((t) => t.id === tabParam) ? tabParam : 'start') as Tab;
   const [q, setQ] = useState(sp.get('q') || '');
+  const qParam = sp.get('q') || '';
+  useEffect(() => {
+    if (qParam) setQ(qParam);
+  }, [qParam]);
 
   return (
     <>

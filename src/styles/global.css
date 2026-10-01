@@ -315,7 +315,11 @@ table.tbl tr.clickable { cursor: pointer; }
 .timeline .when { color: var(--fg-faint); font-size: 12px; }
 
 .toast { position: fixed; bottom: 18px; right: 18px; background: var(--fg); color: var(--bg-elev); padding: 10px 14px; border-radius: 8px; box-shadow: var(--shadow); z-index: 50; max-width: 380px; font-size: 13px; }
+.toast { display: flex; align-items: center; gap: 12px; }
 .toast.bad { background: var(--bad); color: #fff; }
+.toast-action { font: inherit; font-weight: 650; font-size: 12.5px; color: var(--accent); background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.25); border-radius: 6px; padding: 4px 9px; cursor: pointer; white-space: nowrap; }
+.toast.bad .toast-action { color: #fff; }
+.toast-action:hover { background: rgba(255,255,255,0.2); }
 
 .symbol-sheet { width: 100%; height: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); background: #fff; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }

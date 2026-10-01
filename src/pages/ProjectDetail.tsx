@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { deleteProject, newSheet, updateProject, useAppData, addPermit, newPermit, updatePermit, deletePermit } from '@/store/store';
+import { deleteProject, newSheet, updateProject, useAppData, addPermit, newPermit, updatePermit, deletePermit, restoreProject, restoreEntity } from '@/store/store';
 import type { Permit, PermitAgencyType, PermitStatus, Project, Sheet } from '@/lib/types';
-import { PERMIT_STATUSES } from '@/lib/types';
+import { PERMIT_STATUSES, PROJECT_STATUSES } from '@/lib/types';
 import { QC_CHECKLIST, QC_GROUPS, WORKFLOW_PHASES, WORKFLOW_STEPS, SHEET_MAX_ALONG_FT, clipExtents, sheetsForRun } from '@/data/guide';
 import { checkSheets, generateSheets, sheetProgress } from '@/lib/sheets';
 import { daysUntil, fmtDate, fmtFt } from '@/lib/ids';
@@ -50,6 +50,12 @@ export default function ProjectDetail() {
           <h1 style={{ marginTop: 4 }}>{project.name || 'Untitled project'}</h1>
         </div>
         <div className="row">
+          <label className="row" style={{ gap: 6, fontSize: 12.5 }} title="Change the project status">
+            <span className="muted">Status</span>
+            <select value={project.status} onChange={(e) => updateProject(project.id, { status: e.target.value as Project['status'] })} style={{ width: 'auto' }} aria-label="Project status">
+              {PROJECT_STATUSES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+            </select>
+          </label>
           {project.driveFolderUrl && <a className="btn sm" href={project.driveFolderUrl} target="_blank" rel="noopener noreferrer">Drive folder ↗</a>}
           {project.arcgisProjectUrl && <a className="btn sm" href={project.arcgisProjectUrl} target="_blank" rel="noopener noreferrer">ArcGIS ↗</a>}
         </div>
@@ -69,7 +75,17 @@ export default function ProjectDetail() {
         ]}
       />
 
-      {tab === 'overview' && <Overview project={project} onDelete={() => { deleteProject(project.id); nav('/projects'); }} />}
+      {tab === 'overview' && (
+        <Overview
+          project={project}
+          onDelete={() => {
+            const id = project.id;
+            deleteProject(id);
+            nav('/projects');
+            toast(`Deleted ${project.number || project.name || 'project'}.`, 'ok', { label: 'Undo', onClick: () => { restoreProject(id); nav(`/projects/${id}`); } });
+          }}
+        />
+      )}
       {tab === 'sheets' && <Sheets project={project} />}
       {tab === 'workflow' && <Workflow project={project} />}
       {tab === 'qc' && <Qc project={project} />}
@@ -97,7 +113,7 @@ function Overview({ project, onDelete }: { project: Project; onDelete: () => voi
         <ProjectForm value={project} onChange={(patch) => updateProject(project.id, patch)} />
         <hr />
         <div className="row between">
-          <span className="faint" style={{ fontSize: 12 }}>Created {fmtDate(project.createdAt)} · updated {fmtDate(project.updatedAt)}</span>
+          <span className="faint" style={{ fontSize: 12 }}>Created {fmtDate(project.createdAt)} · updated {fmtDate(project.updatedAt)}{project.updatedBy ? ` by ${project.updatedBy}` : ''}</span>
           <ConfirmButton label="Delete project" confirmLabel="Yes, delete it" onConfirm={onDelete} />
         </div>
       </Card>
@@ -229,7 +245,7 @@ function Sheets({ project }: { project: Project }) {
                   {sheets.map((s) => (
                     <tr key={s.id}>
                       <td className="mono nowrap">
-                        <input type="number" value={s.pageNumber} min={1} onChange={(e) => patch(s.id, { pageNumber: Number(e.target.value) })} style={{ width: 58 }} />
+                        <input type="number" value={s.pageNumber} min={1} onChange={(e) => { const n = Number(e.target.value); if (e.target.value !== '' && Number.isInteger(n) && n >= 1) patch(s.id, { pageNumber: n }); }} style={{ width: 58 }} />
                       </td>
                       <td><input type="number" value={s.angle ?? ''} step={90} min={-90} max={90} onChange={(e) => patch(s.id, { angle: e.target.value === '' ? null : Number(e.target.value) })} style={{ width: 64 }} /></td>
                       <td><input type="number" value={s.cellFt ?? ''} min={0} max={SHEET_MAX_ALONG_FT} onChange={(e) => patch(s.id, { cellFt: e.target.value === '' ? null : Number(e.target.value) })} style={{ width: 70 }} /></td>
@@ -396,7 +412,7 @@ function Permits({ project, permits }: { project: Project; permits: Permit[] }) 
                   <td><input type="date" value={p.submittedOn} onChange={(e) => updatePermit(p.id, { submittedOn: e.target.value })} /></td>
                   <td><input type="date" value={p.dueOn} onChange={(e) => updatePermit(p.id, { dueOn: e.target.value })} /></td>
                   <td><textarea value={p.notes} onChange={(e) => updatePermit(p.id, { notes: e.target.value })} style={{ minHeight: 44, minWidth: 200 }} /></td>
-                  <td><ConfirmButton label="×" className="btn sm ghost" onConfirm={() => deletePermit(p.id)} /></td>
+                  <td><ConfirmButton label="×" className="btn sm ghost" onConfirm={() => { deletePermit(p.id); toast('Permit removed.', 'ok', { label: 'Undo', onClick: () => restoreEntity('permits', p.id) }); }} /></td>
                 </tr>
               ))}
             </tbody>

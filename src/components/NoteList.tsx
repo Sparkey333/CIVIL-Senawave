@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Note, NoteType } from '@/lib/types';
 import { NOTE_TYPES } from '@/lib/types';
-import { addNote, deleteNote, newNote, updateNote, useAppData } from '@/store/store';
+import { addNote, deleteNote, newNote, restoreEntity, updateNote, useAppData } from '@/store/store';
+import { toast } from './Toast';
 import { useAuth } from '@/lib/auth';
 import { fmtDate, fmtDateTime } from '@/lib/ids';
 import { Badge, ConfirmButton, Empty, Field } from './ui';
@@ -136,7 +137,7 @@ export function NoteItem({ note, showProject }: { note: Note; showProject?: bool
         </div>
         <div className="row" style={{ gap: 4 }}>
           <button className="btn sm ghost" onClick={() => setEditing(true)}>Edit</button>
-          <ConfirmButton label="Delete" className="btn sm ghost" onConfirm={() => deleteNote(note.id)} />
+          <ConfirmButton label="Delete" className="btn sm ghost" onConfirm={() => { deleteNote(note.id); toast('Note deleted.', 'ok', { label: 'Undo', onClick: () => restoreEntity('notes', note.id) }); }} />
         </div>
       </div>
       {note.body && <div className="body">{note.body}</div>}

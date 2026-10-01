@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useAppData } from '@/store/store';
 import { PROJECT_STATUSES } from '@/lib/types';
 import { QC_CHECKLIST, WORKFLOW_STEPS, TWO_NUMBERS } from '@/data/guide';
-import { daysUntil, fmtDate } from '@/lib/ids';
+import { daysUntil, fmtDate, todayIso } from '@/lib/ids';
 import { Badge, Card, Progress, Stat } from '@/components/ui';
 import { StatusBadge } from '@/components/StatusBadge';
 
@@ -20,7 +20,7 @@ export default function Dashboard() {
   ]
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 8);
-  const hoursThisMonth = data.timeEntries.filter((t) => t.date.slice(0, 7) === new Date().toISOString().slice(0, 7)).reduce((a, t) => a + t.hours, 0);
+  const hoursThisMonth = data.timeEntries.filter((t) => t.date.slice(0, 7) === todayIso().slice(0, 7)).reduce((a, t) => a + t.hours, 0);
   const recentNotes = [...data.notes].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 6);
 
   return (

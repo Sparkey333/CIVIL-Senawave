@@ -18,15 +18,15 @@ describe('mergeById', () => {
 });
 
 describe('mergeData', () => {
-  it('merges every collection and takes the newer settings', () => {
+  it('merges every collection and takes the newer shared settings', () => {
     const local = seedData();
     const remote = seedData();
     remote.updatedAt = '2099-01-01T00:00:00Z';
-    remote.settings = { ...remote.settings, hourlyRate: 85 };
+    remote.settings = { ...remote.settings, ownerName: 'Remote Owner' };
     remote.notes = [{ ...remote.notes[0], id: 'note_remote', title: 'from remote' }];
     remote.projects[0] = { ...remote.projects[0], name: 'renamed remotely', updatedAt: '2099-01-01T00:00:00Z' };
     const out = mergeData(local, remote);
-    expect(out.settings.hourlyRate).toBe(85);
+    expect(out.settings.ownerName).toBe('Remote Owner');
     expect(out.notes.some((n) => n.id === 'note_remote')).toBe(true);
     expect(out.notes.length).toBe(local.notes.length + 1);
     expect(out.projects.find((p) => p.id === 'prj_sample_1')?.name).toBe('renamed remotely');

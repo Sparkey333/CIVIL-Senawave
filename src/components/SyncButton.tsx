@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { syncWithDrive } from '@/lib/sync';
-import { useAppData } from '@/store/store';
+import { getState, useAppData } from '@/store/store';
 import { toast } from './Toast';
 
 export function SyncButton() {
@@ -18,9 +18,9 @@ export function SyncButton() {
     setBusy(true);
     try {
       const r = await syncWithDrive(getToken);
-      lastPushedAt.current = data.updatedAt;
+      lastPushedAt.current = getState().updatedAt;
       setLast(new Date().toLocaleTimeString());
-      if (!quiet) toast(r.pulled ? 'Synced with Google Drive.' : 'Created the sync file in Google Drive.');
+      if (!quiet) toast(r.pulled ? (r.retries ? `Synced with Google Drive (merged ${r.retries} concurrent edit${r.retries > 1 ? 's' : ''}).` : 'Synced with Google Drive.') : 'Created the sync file in Google Drive.');
     } catch (err) {
       toast(`Drive sync failed: ${(err as Error).message}`, 'bad');
     } finally {

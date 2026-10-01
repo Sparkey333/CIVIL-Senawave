@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { TimeEntry } from '@/lib/types';
-import { addTimeEntry, deleteTimeEntry, newTimeEntry, updateTimeEntry, useAppData } from '@/store/store';
+import { addTimeEntry, deleteTimeEntry, newTimeEntry, restoreEntity, updateTimeEntry, useAppData } from '@/store/store';
 import { todayIso } from '@/lib/ids';
 import { Callout, ConfirmButton, Field } from './ui';
 import { toast } from './Toast';
@@ -129,7 +129,7 @@ export function TimeTable({ projectId }: { projectId?: string }) {
                 <td className="num">{t.hours.toFixed(2)}</td>
                 <td><input type="checkbox" checked={t.billable} onChange={(e) => updateTimeEntry(t.id, { billable: e.target.checked })} /></td>
                 <td><input type="checkbox" checked={t.invoiced} onChange={(e) => updateTimeEntry(t.id, { invoiced: e.target.checked })} /></td>
-                <td><ConfirmButton label="×" className="btn sm ghost" onConfirm={() => deleteTimeEntry(t.id)} /></td>
+                <td><ConfirmButton label="×" className="btn sm ghost" onConfirm={() => { deleteTimeEntry(t.id); toast('Time entry deleted.', 'ok', { label: 'Undo', onClick: () => restoreEntity('timeEntries', t.id) }); }} /></td>
               </tr>
             ))}
             {entries.length === 0 && (

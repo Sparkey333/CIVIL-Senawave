@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { COMPANY, OTHER_ENTITIES } from '@/data/company';
 import { DESIGN_TEAM_IMPLICATIONS, JOB_POSTING } from '@/data/jobPosting';
-import { addTeamMember, deleteTeamMember, newTeamMember, updateTeamMember, useAppData } from '@/store/store';
+import { addTeamMember, deleteTeamMember, newTeamMember, restoreEntity, updateTeamMember, useAppData } from '@/store/store';
+import { toast } from '@/components/Toast';
 import type { TeamMember } from '@/lib/types';
 import { Badge, Callout, Card, ConfirmButton, ExtLink, Field, KV, Tabs, VerifiedBadge, useLocalTab } from '@/components/ui';
 import { fmtDate } from '@/lib/ids';
@@ -67,7 +68,7 @@ function Member({ m }: { m: TeamMember }) {
           <button className="btn primary sm" onClick={() => { updateTeamMember(m.id, draft); setEditing(false); }}>Save</button>
           <button className="btn sm ghost" onClick={() => { setDraft(m); setEditing(false); }}>Cancel</button>
           <span className="spacer" />
-          <ConfirmButton label="Remove" onConfirm={() => deleteTeamMember(m.id)} />
+          <ConfirmButton label="Remove" onConfirm={() => { deleteTeamMember(m.id); toast(`Removed ${m.name || 'person'}.`, 'ok', { label: 'Undo', onClick: () => restoreEntity('team', m.id) }); }} />
         </div>
       </Card>
     );

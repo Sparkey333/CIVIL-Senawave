@@ -20,7 +20,7 @@ tracking, one 450 KB bundle.
 | **Plan Production Guide** | Rev 5 as tables: the numbers, whole-job checklist, ArcGIS scripts and options, BricsCAD import, per-sheet recipe, side panel / vicinity / basemaps, titleblocks, QC, troubleshooting, all 34 SENA commands, layer standard with colour swatches, symbol library (with the symbol sheet image), old-layer migration map, maintenance rules, and a calculator (sheets per run, clip rectangle, text heights, symbol scale). |
 | **Team & company** | People cards with verified / partly verified / unverified badges and sources (David Bradshaw verified; Jesse Montgomery not found publicly — to confirm), Senawave facts with sources, BEAD award, franchise agreements by city, service area, and the original Indeed PE / Engineer-of-Record posting with what it implies for the design seat. |
 | **Tools & integrations** | Quick links (Drive, Gusto, BricsCAD, ArcGIS, UDOT, Blue Stakes, UBC, DOPL), Google Drive layout, Gusto invoicing notes, BricsCAD and ArcGIS Pro setup checklists from the guide, agencies and permit types. |
-| **Settings** | Google sign-in, owner and allowed emails, hourly rate, theme, Drive sync (folder, scope, shared file id, auto-sync), JSON export / import (merge or replace), delete sample data, reset. |
+| **Settings** | Google sign-in, owner and allowed emails, hourly rate, theme, Drive sync (folder, scope, shared file id, auto-sync, whether the time log goes in the file), JSON export / import (merge or replace), local backups with restore, delete sample data, reset. Rate, theme and this device's sync settings never leave the browser. |
 
 The sample project (`26-0001 SAMPLE — Brigham City north corridor`) is seeded so nothing is empty on first
 open. Delete it from Settings once real work is in.
@@ -71,6 +71,9 @@ Two options, both without a server:
   sign in with their Google account (added as test users, and to Settings → *Also allowed*), set scope to
   `drive` in Settings, paste the file's share link into *Sync file id or share link*, and sync. Edits merge
   per record, newest wins; two people editing the same field within one sync window is last-writer-wins.
+  Before sharing, set *Time log in the Drive file* to **Kept private** so your hours stay on your own
+  devices; your hourly rate never goes into the file either way. Deletes sync as hidden markers, so a
+  project removed on one side disappears on the other instead of coming back.
 
 When this outgrows a JSON file (more than three people, or you want live updates), the storage layer is
 isolated in `src/store/store.ts` + `src/lib/sync.ts`; swapping in Firestore or a small API is the intended

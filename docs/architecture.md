@@ -21,18 +21,24 @@ AppData
 ├─ permits[]    Permit { projectId, agency, agencyName, type, status, permitNo, submittedOn, dueOn, notes }
 ├─ timeEntries[] TimeEntry { projectId?, date, hours, description, billable, invoiced }
 ├─ team[]       TeamMember { name, role, org, email, phone, responsibilities, notes, links[], verified }
-├─ settings     Settings { ownerName, ownerEmail, allowedEmails[], hourlyRate, driveFileId,
-│                          driveFolderName, driveScope, autoSync, theme, quickLinks[] }
+├─ settings     Settings { ownerName, ownerEmail, allowedEmails[], quickLinks[]            ← shared
+│                          hourlyRate, theme, autoSync, driveFileId, driveFolderName,
+│                          driveScope, syncTimeEntries }                                 ← device-only
 ├─ scratch{}    free-text / checkbox state keyed by name (gusto, agencies, setup:bc-*, …)
 └─ version, updatedAt
 ```
 
-Every record carries `id` and `updatedAt`; that is what the merge relies on.
+Every record carries `id` and `updatedAt`; that is what the merge relies on. Records also carry
+`updatedBy` (who made the last edit) and, when deleted, `deletedAt`: a delete is a tombstone, hidden
+from the UI but kept for 90 days so the delete reaches every other copy instead of being resurrected.
 
 ## Store (`src/store/store.ts`)
 
 A tiny external store (`useSyncExternalStore`) holding one `AppData` object, persisted to
-`localStorage` on every change. All mutations go through named functions (`addProject`, `updateNote`, …)
+`localStorage` (debounced 200 ms, flushed when the tab hides). `getState()` is the raw data with
+tombstones (sync, export); `useAppData()` / `getView()` is the filtered view pages render. Rolling
+backups (`senawave-tracker:backup:*`, three kept) are written once a day and before any
+import-replace, reset or restore; Settings lists and restores them. All mutations go through named functions (`addProject`, `updateNote`, …)
 that stamp `updatedAt`. `migrate()` fills new fields from the seed so old saved data keeps working after
 an upgrade; bump `DATA_VERSION` when the shape changes.
 
@@ -47,8 +53,13 @@ Drive/browser anyway). Without a client id the app runs in offline mode with a l
 ## Sync (`src/lib/drive.ts`, `src/lib/sync.ts`, `src/lib/merge.ts`)
 
 - One file `senawave-tracker.json` in a folder in My Drive (auto-created), or an explicit file id.
-- `syncWithDrive`: read remote → `mergeData(local, remote)` → write merged back. Merge is per record,
-  newest `updatedAt` wins; settings follow the newer `AppData.updatedAt`; scratch keys merge individually.
+- `syncWithDrive`: read remote → `mergeData(local, remote)` → re-check the file's `modifiedTime` →
+  write merged back. If the file changed under us, pull and merge again first (up to three rounds), so
+  a concurrent edit by the other person is never overwritten blind. Merge is per record, newest
+  `updatedAt` wins (tombstones included); shared settings follow the newer `AppData.updatedAt`;
+  `PRIVATE_SETTING_KEYS` always stay local; scratch keys merge individually.
+- `stripForSync` builds the payload that leaves the device: private settings removed and, when
+  *Time log in the Drive file* is off, no time entries (remote ones are ignored on merge too).
 - Auto-sync (optional) pushes 20 s after the last edit. Conflicts inside one record are last-writer-wins.
 - `drive.file` scope only sees files this app created — enough for one person on several devices.
   A team file shared by Drive needs the `drive` scope on the other users' side (the app cannot see a
