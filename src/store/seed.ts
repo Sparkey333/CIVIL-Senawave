@@ -1,6 +1,7 @@
 import type { AppData, Note, Permit, Project, Settings, Sheet, TeamMember, TimeEntry } from '@/lib/types';
 import { DATA_VERSION } from '@/lib/types';
 import { COMPANY } from '@/data/company';
+import { DESIGN_FOLDER_URL, FLUENCE_FOLDER_URL } from '@/data/fluenceDrive';
 
 const T0 = '2026-09-29T12:00:00.000Z';
 
@@ -14,6 +15,8 @@ export const DEFAULT_QUICK_LINKS: Settings['quickLinks'] = [
   { label: 'Utah Broadband Center (BEAD)', url: 'https://connecting.utah.gov/' },
   { label: 'Utah DOPL license lookup (PE)', url: 'https://secure.utah.gov/llv/search/index.html' },
   { label: 'Senawave website', url: COMPANY.website },
+  { label: 'Senawave Design folder (shared by Jesse)', url: DESIGN_FOLDER_URL },
+  { label: 'Fluence project folder', url: FLUENCE_FOLDER_URL },
 ];
 
 export function defaultSettings(): Settings {
@@ -29,6 +32,10 @@ export function defaultSettings(): Settings {
     theme: 'system',
     quickLinks: DEFAULT_QUICK_LINKS,
     syncTimeEntries: true,
+    designFolderUrl: DESIGN_FOLDER_URL,
+    driveFilesEnabled: false,
+    gmailEnabled: false,
+    eveningHour: 16,
   };
 }
 
@@ -37,13 +44,13 @@ export function seedTeam(): TeamMember[] {
     {
       id: 'tm_owner',
       name: 'Brandon Barkey',
-      role: 'Civil designer (contract) — plan production, ArcGIS → BricsCAD',
+      role: 'Civil Engineer, P.E., M.Sc. — contract plan production (ArcGIS → BricsCAD) and engineering review',
       org: 'Contractor (Ansom Outdoor LLC)',
       email: 'brandonlbarkey@gmail.com',
       phone: '',
       responsibilities:
         'Produce 11×17 plan sets per the Plan Production Guide: sheet index in ArcGIS Pro, utility exports, BricsCAD sheet cutting, side panels, titleblocks, QC and PDF. Track redlines and agency comments; hand sealed-ready sets to the Engineer of Record.',
-      notes: 'This tool is signed in as you. Edit your details in Settings.',
+      notes: 'This tool is signed in as you. Edit your details in Settings. You sign your Senawave email as P.E.; the Indeed posting\'s Engineer-of-Record seat may be yours to fill — confirm with David.',
       links: [],
       verified: 'verified',
       updatedAt: T0,
@@ -51,12 +58,12 @@ export function seedTeam(): TeamMember[] {
     {
       id: 'tm_david',
       name: 'David Bradshaw',
-      role: 'Principal / COO (also cited as CEO and Operations Manager)',
+      role: 'Principal / COO (also cited as CEO and Operations Manager) — "Dave"',
       org: 'Senawave (VAIX, Inc. dba Senawave Communications)',
-      email: '',
+      email: 'david@senawave.com',
       phone: '',
       responsibilities:
-        'Senior operations/executive principal and named Provider representative on municipal franchise agreements (Willard City, Farr West, Box Elder County corridor). Decision-maker on franchise, right-of-way and BEAD build-out matters.',
+        'Senior operations/executive principal and named Provider representative on municipal franchise agreements (Willard City, Farr West, Box Elder County corridor). Decision-maker on franchise, right-of-way and BEAD build-out matters. Handles your hours, pay (ACH) and software licences (BricsCAD, ArcGIS, company email).',
       notes:
         'Verified across Crunchbase, ZoomInfo, LinkedIn, D&B, FCC Form 499 (CEO of VAIX, Inc.), Cottonwood Heights city news and council minutes. Background: BS Computer Science (UVU), formerly Arrival Telecom; with Senawave since about 2012. No PE/PLS record found — not the Engineer of Record.',
       links: [
@@ -72,15 +79,15 @@ export function seedTeam(): TeamMember[] {
     {
       id: 'tm_jesse',
       name: 'Jesse Montgomery',
-      role: 'Design / project contact — role to confirm',
-      org: 'Senawave (assumed)',
-      email: '',
+      role: 'Design / GIS lead — day-to-day contact for plan production',
+      org: 'Senawave',
+      email: 'jessem@senawave.com',
       phone: '',
-      responsibilities: 'Day-to-day design coordination (your working folder is "Utah Fiber - Jesse"). Confirm title, email and whether Jesse is Senawave staff or a contractor.',
+      responsibilities: 'Owns the shared Design folder (Templates + Projects), builds the ArcGIS projects and geopackages, exports the xrefs, runs the Google Meet check-ins, relays priorities from Dave (Fluence first, then BEAD).',
       notes:
-        'NOT FOUND in any public source tied to Senawave, Vaix, Utah telecom/fiber, Ansom Outdoor or "UT Light" (about 20 search variants). Utah people with this name found online are in unrelated fields (Co-Diagnostics, Veola Consulting, Intermountain Healthcare). Ask David or Jesse directly and update this card.',
-      links: [],
-      verified: 'unverified',
+        'Verified 1 Oct 2026 from your own mailbox and Drive: every Senawave email to you comes from jessem@senawave.com (Fiber Introduction 24 Sep, Getting started 29 Sep, Hours 30 Sep, Meeting 1 Oct) and Jesse owns the Design folder and all of its files. No public web footprint tied to Senawave, which is normal for a GIS/design role.',
+      links: [{ label: 'Design folder (Drive)', url: DESIGN_FOLDER_URL }],
+      verified: 'verified',
       updatedAt: T0,
     },
     {
@@ -272,8 +279,9 @@ function sampleTime(): TimeEntry[] {
 export function seedData(): AppData {
   return {
     version: DATA_VERSION,
-    projects: [sampleProject()],
-    notes: sampleNotes(),
+    activity: [],
+    projects: [fluenceProject(), sampleProject()],
+    notes: [...fluenceNotes(), ...sampleNotes()],
     permits: samplePermits(),
     timeEntries: sampleTime(),
     team: seedTeam(),
@@ -281,4 +289,128 @@ export function seedData(): AppData {
     updatedAt: T0,
     scratch: {},
   };
+}
+
+// ---------- Fluence: the first real project (from the Design folder and the Senawave emails, 1 Oct 2026) ----------
+
+export const FLUENCE_ID = 'prj_fluence';
+const T1 = '2026-10-01T16:45:00.000Z';
+
+export function fluenceProject(): Project {
+  return {
+    id: FLUENCE_ID,
+    number: '26-0002',
+    name: 'Fluence — 2nd St, 400 E to 500 E, Ogden',
+    client: 'Senawave',
+    municipality: 'Ogden',
+    county: 'Weber',
+    status: 'cad',
+    funding: 'Private',
+    crs: 'EPSG:6625',
+    routeLengthFt: 600,
+    pm: 'Jesse Montgomery',
+    engineer: 'Brandon Barkey',
+    designer: 'Brandon Barkey',
+    designDate: '2026-09-29',
+    fieldDate: '',
+    dueDate: '',
+    driveFolderUrl: FLUENCE_FOLDER_URL,
+    arcgisProjectUrl: 'https://drive.google.com/file/d/1wctIicuYEmaN_JMG02F-dBqbi0dB6Mss/view',
+    drawingPath: 'G:\\My Drive\\Design\\Projects\\Fluence\\CAD\\Fluence.dwg',
+    description:
+      'Buried fiber along the south side of 2nd Street from 400 E to 500 E, Ogden (one block; route PDF "ProposedBuriedFiber_Senawave.pdf" dated 24 Sep). ' +
+      'Jesse built Fluence.aprx + Fluence.gdb, imported the Ogden City utility KMZs (sewer, storm, water), and exported xrefs (SheetIndex, Power, Power-UG, OtherComm, Sewer, Storm, Water, Buildings, Gas) plus PLAN-01 imagery. ' +
+      'Fluence.dwg exists in CAD\\. Route length is an estimate from the PDF (≈ 1 block); replace with the dissolved length from ArcGIS. ' +
+      'Priority from Dave (30 Sep): finish Fluence first, then start BEAD designs.',
+    workflow: {
+      'start-new': true,
+      'gis-index': true,
+      'gis-qc': true,
+      'gis-utilities': true,
+      'cad-points-imagery': false,
+    },
+    qc: {},
+    sheets: [
+      {
+        id: 'sht_fluence_1',
+        pageNumber: 1,
+        angle: 0,
+        cellFt: 600,
+        clipX0: 1.35,
+        clipX1: 13.35,
+        matchL: '',
+        matchR: '',
+        matchT: '',
+        matchB: '',
+        aligned: false,
+        clipped: false,
+        sidePanel: false,
+        titleblock: false,
+        qcDone: false,
+        notes: 'PLAN-01.png + .pgw already in xref\\imagery (29 Sep). Confirm CellFt from the SheetIndex table.',
+      },
+    ],
+    createdAt: T1,
+    updatedAt: T1,
+    updatedBy: 'Tracker',
+  };
+}
+
+export function fluenceNotes(): Note[] {
+  const mk = (id: string, partial: Partial<Note>): Note => ({
+    id,
+    projectId: FLUENCE_ID,
+    sheetNo: null,
+    type: 'note',
+    title: '',
+    body: '',
+    tags: ['email'],
+    done: false,
+    dueOn: '',
+    author: 'Tracker (from Gmail)',
+    createdAt: T1,
+    updatedAt: T1,
+    ...partial,
+  });
+  return [
+    mk('note_fl_meet_1001', {
+      type: 'meeting',
+      title: 'Fluence check-in with Jesse — Thu 1 Oct, 12:00–1:00 pm MDT (Google Meet)',
+      body: 'Accepted invite "Fluence". meet.google.com/qwm-cbdw-xmq. Agenda to bring: where Fluence.dwg stands, the sheet index (one PLAN sheet?), xref binding, what Jesse still needs from you, licence status.',
+      tags: ['email', 'meeting', 'jesse'],
+      dueOn: '2026-10-01',
+    }),
+    mk('note_fl_decision_hours', {
+      type: 'decision',
+      title: 'Dave: enough work for ~full time; finish Fluence first, then BEAD',
+      body: 'Jesse relayed from Dave (30 Sep): there is enough work for full-time or close to it. You offered 30–40 h/week. Jesse: "Let\'s try and finish out Fluence first and then we can move on to BEAD."',
+      tags: ['email', 'hours', 'bead'],
+      done: true,
+    }),
+    mk('note_fl_action_licences', {
+      type: 'action',
+      title: 'Follow up with Dave: BricsCAD + ArcGIS licences and a @senawave.com email',
+      body: 'Your 29 Sep email to Dave and Jesse listed the two licences and a company email for accounts. No reply in the thread yet. Needed before the LISP/SheetIndex workflow can run on your machine.',
+      tags: ['email', 'setup', 'dave'],
+      dueOn: '2026-10-02',
+    }),
+    mk('note_fl_ref_stamped', {
+      type: 'note',
+      title: 'Reference sets from Jesse: two stamped contractor plan sets (30 Sep)',
+      body: '"SENAWAVE COPPERTON - UDOT TRADE 26-0062 04-22-26" and "Senawave - Ogden City Washington Blvd. Project 1" (PDFs in the "Stamped plans" email). Use them as the look-and-feel target for the Fluence set: titleblock, notes sheets, UDOT crossing callouts.',
+      tags: ['email', 'reference'],
+    }),
+    mk('note_fl_data', {
+      type: 'note',
+      title: 'Data received: Fluence geopackage (25 Sep) and Design folder share (30 Sep)',
+      body: 'Fluence.gpkg emailed 25 Sep; the shared Design folder holds the live copy (ArcGIS\\Shared\\Fluence.gpkg, 29 Sep) plus the route PDF/KMZ, Ogden City utility KMZs, Fluence.aprx/.gdb, and the CAD folder with Fluence.dwg and the xref exports. See the Files page.',
+      tags: ['email', 'data'],
+    }),
+    mk('note_fl_action_route', {
+      type: 'action',
+      title: 'Replace the 600 ft route estimate with the dissolved route length from Fluence.aprx',
+      body: 'The tracker guessed one block (~600 ft, one PLAN sheet) from the route PDF. Read the real length and the SheetIndex table (PageNumber, Angle, CellFt, ClipX0/X1) and update the Sheet index tab.',
+      tags: ['sheet-index'],
+    }),
+  ];
 }

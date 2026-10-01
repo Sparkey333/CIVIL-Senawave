@@ -71,6 +71,32 @@ export default function Settings() {
           )}
         </Card>
 
+        <Card title="Connections" subtitle="Each switch adds one read-only Google permission the next time you sign in. Nothing is written to Drive or Gmail by these.">
+          <div className="form-grid">
+            <Field label="Senawave Design folder (read-only Drive)" hint="Lets the Files page list the shared folder Jesse owns (Templates + Projects) and spot changes.">
+              <select value={s.driveFilesEnabled ? 'on' : 'off'} onChange={(e) => updateSettings({ driveFilesEnabled: e.target.value === 'on' })}>
+                <option value="off">Off</option>
+                <option value="on">On — drive.readonly</option>
+              </select>
+            </Field>
+            <Field label="Gmail (read-only, @senawave.com only)" hint="The Senawave inbox page lists threads from the domain so you can file them as notes and actions.">
+              <select value={s.gmailEnabled ? 'on' : 'off'} onChange={(e) => updateSettings({ gmailEnabled: e.target.value === 'on' })}>
+                <option value="off">Off</option>
+                <option value="on">On — gmail.readonly</option>
+              </select>
+            </Field>
+            <Field label="Design folder link" className="span-all">
+              <input value={s.designFolderUrl} onChange={(e) => updateSettings({ designFolderUrl: e.target.value })} placeholder="https://drive.google.com/drive/folders/…" />
+            </Field>
+            <Field label="Evening log starts at (hour, 0–23)" hint="The Daily page opens on the evening log from this hour.">
+              <input type="number" min={0} max={23} value={s.eveningHour ?? 16} onChange={(e) => updateSettings({ eveningHour: Math.max(0, Math.min(23, Number(e.target.value) || 0)) })} />
+            </Field>
+          </div>
+          {user?.mode === 'google' && (s.driveFilesEnabled || s.gmailEnabled) && (
+            <p className="faint" style={{ fontSize: 12, marginTop: 8 }}>Changed a switch? Sign out and back in once so Google asks for the new permission.</p>
+          )}
+        </Card>
+
         <Card title="Owner & access" subtitle="Who may sign in. Empty list = only the owner. Google sign-in checks this list; offline mode does not.">
           <div className="form-grid">
             <Field label="Owner name"><input value={s.ownerName} onChange={(e) => updateSettings({ ownerName: e.target.value })} /></Field>

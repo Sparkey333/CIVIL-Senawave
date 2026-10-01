@@ -1,10 +1,12 @@
 import { useSyncExternalStore } from 'react';
-import type { AppData, EntityKind, Note, Permit, Project, Settings, Sheet, TeamMember, TimeEntry } from '@/lib/types';
+import type { ActivityEntry, ActivityKind, AppData, EntityKind, Note, Permit, Project, Settings, Sheet, TeamMember, TimeEntry } from '@/lib/types';
+import { PROJECT_STATUSES, PERMIT_STATUSES } from '@/lib/types';
+import { WORKFLOW_STEPS, QC_CHECKLIST } from '@/data/guide';
 import { DATA_VERSION } from '@/lib/types';
 import { nowIso, uid } from '@/lib/ids';
-import { mergeData, purgeTombstones } from '@/lib/merge';
+import { capActivity, mergeData, purgeTombstones } from '@/lib/merge';
 import { toast } from '@/components/Toast';
-import { seedData } from './seed';
+import { FLUENCE_ID, fluenceNotes, fluenceProject, seedData } from './seed';
 
 export const STORAGE_KEY = 'senawave-tracker:v1';
 const BACKUP_PREFIX = 'senawave-tracker:backup:';
@@ -39,6 +41,7 @@ function live<T extends Stamped>(xs: T[]): T[] {
 function project(d: AppData): AppData {
   return {
     ...d,
+    activity: live(d.activity || []),
     projects: live(d.projects),
     notes: live(d.notes),
     permits: live(d.permits),
@@ -77,6 +80,7 @@ export function migrate(input: unknown): AppData {
   const merged: AppData = {
     ...seed,
     ...data,
+    activity: asArray<ActivityEntry>(data.activity),
     projects: asArray<Project>(data.projects),
     notes: asArray<Note>(data.notes),
     permits: asArray<Permit>(data.permits),
@@ -90,6 +94,13 @@ export function migrate(input: unknown): AppData {
   // Team members from the seed that are new since the data was saved are added, never overwritten.
   const haveIds = new Set(merged.team.map((t) => t.id));
   for (const t of seed.team) if (!haveIds.has(t.id)) merged.team.push(t);
+  // The first real project (Fluence) is added once to data saved before it existed. A tombstone counts as present,
+  // so deleting it stays deleted.
+  if (!merged.projects.some((p) => p.id === FLUENCE_ID)) {
+    merged.projects.unshift(fluenceProject());
+    const noteIds = new Set(merged.notes.map((n) => n.id));
+    for (const n of fluenceNotes()) if (!noteIds.has(n.id)) merged.notes.push(n);
+  }
   return purgeTombstones(merged);
 }
 
@@ -264,6 +275,46 @@ function patchIn<T extends Stamped>(xs: T[], id: string, patch: Partial<T> | ((r
   return xs.map((row) => (row.id === id ? stamp(row, typeof patch === 'function' ? patch(row) : patch) : row));
 }
 
+// ---------- activity log (feeds the evening log) ----------
+
+export function logActivity(kind: ActivityKind, label: string, projectId: string | null = null) {
+  const ts = nowIso();
+  const entry: ActivityEntry = { id: uid('act'), at: ts, kind, label, projectId, by: actor || 'me', updatedAt: ts };
+  update((d) => ({ ...d, activity: capActivity([entry, ...(d.activity || [])]) }));
+}
+
+/** Activity lines whose local date is `day` (YYYY-MM-DD). */
+export function activityOn(d: AppData, day: string): ActivityEntry[] {
+  return d.activity.filter((a) => localDay(a.at) === day).sort((a, b) => b.at.localeCompare(a.at));
+}
+
+export function localDay(iso: string): string {
+  const t = new Date(iso);
+  if (Number.isNaN(t.getTime())) return iso.slice(0, 10);
+  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+}
+
+function describeProjectChange(before: Project, after: Project): { kind: ActivityKind; label: string }[] {
+  const out: { kind: ActivityKind; label: string }[] = [];
+  const tag = after.number || after.name || 'project';
+  if (before.status !== after.status) out.push({ kind: 'status', label: `${tag}: status → ${PROJECT_STATUSES.find((s) => s.id === after.status)?.label || after.status}` });
+  for (const s of WORKFLOW_STEPS) {
+    if (!before.workflow[s.id] && after.workflow[s.id]) out.push({ kind: 'workflow', label: `${tag}: done — ${s.label.slice(0, 80)}` });
+  }
+  for (const q of QC_CHECKLIST) {
+    if (!before.qc[q.id] && after.qc[q.id]) out.push({ kind: 'qc', label: `${tag}: QC ✓ ${q.label.slice(0, 80)}` });
+  }
+  const prev = new Map(before.sheets.map((s) => [s.id, s]));
+  for (const s of after.sheets) {
+    const p = prev.get(s.id);
+    const flags = ['aligned', 'clipped', 'sidePanel', 'titleblock', 'qcDone'] as const;
+    const newly = flags.filter((f) => s[f] && !(p && p[f]));
+    if (newly.length) out.push({ kind: 'sheet', label: `${tag}: PLAN-${String(s.pageNumber).padStart(2, '0')} ${newly.join(', ')}` });
+  }
+  if (before.sheets.length === 0 && after.sheets.length > 0) out.push({ kind: 'sheet', label: `${tag}: sheet index created (${after.sheets.length} sheets)` });
+  return out;
+}
+
 /** Soft delete: the row stays, hidden, so the delete syncs to other copies and can be undone. */
 export function deleteEntity(kind: EntityKind, id: string) {
   const ts = nowIso();
@@ -311,10 +362,14 @@ export function newProject(partial: Partial<Project> = {}): Project {
 
 export function addProject(p: Project) {
   update((d) => ({ ...d, projects: [p, ...d.projects] }));
+  logActivity('project', `Created project ${p.number || p.name}`, p.id);
 }
 
 export function updateProject(id: string, patch: Partial<Project> | ((p: Project) => Partial<Project>)) {
+  const before = state.projects.find((p) => p.id === id);
   update((d) => ({ ...d, projects: patchIn(d.projects, id, patch) }));
+  const after = state.projects.find((p) => p.id === id);
+  if (before && after) for (const c of describeProjectChange(before, after)) logActivity(c.kind, c.label, id);
 }
 
 /** Tombstones the project and its permits together; notes and time stay linked for the undo. */
@@ -384,10 +439,13 @@ export function newNote(author: string, partial: Partial<Note> = {}): Note {
 
 export function addNote(n: Note) {
   update((d) => ({ ...d, notes: [n, ...d.notes] }));
+  if (!n.tags.includes('daily-log')) logActivity('note', `${n.type}: ${n.title || n.body.slice(0, 60)}`, n.projectId);
 }
 
 export function updateNote(id: string, patch: Partial<Note>) {
+  const before = state.notes.find((n) => n.id === id);
   update((d) => ({ ...d, notes: patchIn(d.notes, id, patch) }));
+  if (before && patch.done === true && !before.done) logActivity('note', `Done: ${before.title}`, before.projectId);
 }
 
 export function deleteNote(id: string) {
@@ -418,10 +476,13 @@ export function newPermit(projectId: string, partial: Partial<Permit> = {}): Per
 
 export function addPermit(p: Permit) {
   update((d) => ({ ...d, permits: [...d.permits, p] }));
+  logActivity('permit', `Permit added: ${p.agencyName || p.agency} — ${p.type}`, p.projectId);
 }
 
 export function updatePermit(id: string, patch: Partial<Permit>) {
+  const before = state.permits.find((p) => p.id === id);
   update((d) => ({ ...d, permits: patchIn(d.permits, id, patch) }));
+  if (before && patch.status && patch.status !== before.status) logActivity('permit', `${before.agencyName || before.agency} ${before.type}: ${PERMIT_STATUSES.find((s) => s.id === patch.status)?.label || patch.status}`, before.projectId);
 }
 
 export function deletePermit(id: string) {
@@ -449,6 +510,7 @@ export function newTimeEntry(partial: Partial<TimeEntry> = {}): TimeEntry {
 
 export function addTimeEntry(t: TimeEntry) {
   update((d) => ({ ...d, timeEntries: [t, ...d.timeEntries] }));
+  logActivity('time', `${t.hours} h — ${t.description || 'time logged'}`, t.projectId);
 }
 
 export function updateTimeEntry(id: string, patch: Partial<TimeEntry>) {

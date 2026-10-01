@@ -8,6 +8,8 @@ export const SCOPES = {
   identity: 'openid email profile',
   driveFile: 'https://www.googleapis.com/auth/drive.file',
   driveFull: 'https://www.googleapis.com/auth/drive',
+  driveReadonly: 'https://www.googleapis.com/auth/drive.readonly',
+  gmailReadonly: 'https://www.googleapis.com/auth/gmail.readonly',
 };
 
 export interface GoogleProfile {

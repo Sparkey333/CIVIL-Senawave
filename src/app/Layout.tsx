@@ -6,9 +6,12 @@ import { ToastHost } from '@/components/Toast';
 
 const NAV = [
   { to: '/', label: 'Dashboard', ico: '◫', end: true },
+  { to: '/daily', label: 'Daily brief & log', ico: '☀' },
   { to: '/projects', label: 'Projects', ico: '▤' },
   { to: '/notes', label: 'Notes & log', ico: '✎' },
   { to: '/time', label: 'Time log', ico: '◷' },
+  { to: '/files', label: 'Files (Drive)', ico: '▣' },
+  { to: '/inbox', label: 'Senawave inbox', ico: '✉' },
 ];
 const NAV2 = [
   { to: '/reference', label: 'Plan Production Guide', ico: '§' },
@@ -22,6 +25,9 @@ const TITLES: Record<string, string> = {
   '/projects': 'Projects',
   '/notes': 'Notes & log',
   '/time': 'Time log',
+  '/daily': 'Daily brief & evening log',
+  '/files': 'Files — Senawave Design folder',
+  '/inbox': 'Senawave inbox (read-only)',
   '/reference': 'Plan Production Guide — Rev 5',
   '/team': 'Team & company',
   '/tools': 'Tools & integrations',

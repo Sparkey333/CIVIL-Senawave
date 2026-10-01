@@ -181,19 +181,62 @@ export interface Settings {
   quickLinks: { label: string; url: string }[];
   /** Include the time log in the Drive file. Turn off before sharing the file with the client. */
   syncTimeEntries: boolean;
+  /** The shared Senawave "Design" folder (Templates + Projects). Shared setting. */
+  designFolderUrl: string;
+  /** Device-only feature switches: each one asks Google for one extra read-only scope. */
+  driveFilesEnabled: boolean;
+  gmailEnabled: boolean;
+  /** Hour (0-23, local) the Daily page switches from morning brief to evening log. */
+  eveningHour: number;
 }
 
 /**
  * Settings that stay on this device and are never written to the Drive file or an export:
  * your rate, how this browser looks, and where this device syncs from.
  */
-export const PRIVATE_SETTING_KEYS = ['hourlyRate', 'theme', 'autoSync', 'driveFileId', 'driveFolderName', 'driveScope', 'syncTimeEntries'] as const satisfies readonly (keyof Settings)[];
+export const PRIVATE_SETTING_KEYS = ['hourlyRate', 'theme', 'autoSync', 'driveFileId', 'driveFolderName', 'driveScope', 'syncTimeEntries', 'driveFilesEnabled', 'gmailEnabled', 'eveningHour'] as const satisfies readonly (keyof Settings)[];
 export type PrivateSettingKey = (typeof PRIVATE_SETTING_KEYS)[number];
 
 export type EntityKind = 'projects' | 'notes' | 'permits' | 'timeEntries' | 'team';
 
+export type ActivityKind = 'status' | 'workflow' | 'qc' | 'sheet' | 'note' | 'permit' | 'time' | 'project' | 'file' | 'email';
+
+/** One line of "what happened": feeds the evening log. Capped, synced, newest-wins like everything else. */
+export interface ActivityEntry {
+  id: string;
+  at: string; // ISO
+  kind: ActivityKind;
+  label: string;
+  projectId: string | null;
+  by: string;
+  updatedAt: string;
+  deletedAt?: string | null;
+}
+
+/** A file or folder seen in the Senawave Design folder (Drive). Device-local cache, never synced. */
+export interface DriveNode {
+  id: string;
+  name: string;
+  mimeType: string;
+  isFolder: boolean;
+  parentId: string | null;
+  path: string; // e.g. Projects/Fluence/CAD/xref/SheetIndex.dwg
+  modifiedTime: string;
+  modifiedBy: string;
+  size: number | null;
+  webViewLink: string;
+}
+
+export interface DriveSnapshot {
+  rootId: string;
+  takenAt: string;
+  nodes: DriveNode[];
+  source: 'live' | 'seed';
+}
+
 export interface AppData {
   version: number;
+  activity: ActivityEntry[];
   projects: Project[];
   notes: Note[];
   permits: Permit[];
@@ -205,4 +248,4 @@ export interface AppData {
   scratch: Record<string, { body: string; updatedAt: string }>;
 }
 
-export const DATA_VERSION = 2;
+export const DATA_VERSION = 3;

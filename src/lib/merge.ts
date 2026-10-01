@@ -43,6 +43,7 @@ export function mergeData(local: AppData, remote: AppData): AppData {
   return {
     ...local,
     version: Math.max(local.version, remote.version || 0),
+    activity: capActivity(mergeById(local.activity || [], remote.activity || [])),
     projects: mergeById(local.projects, remote.projects || []),
     notes: mergeById(local.notes, remote.notes || []),
     permits: mergeById(local.permits, remote.permits || []),
@@ -68,6 +69,13 @@ export function stripForSync(data: AppData): AppData {
   };
 }
 
+export const ACTIVITY_CAP = 600;
+
+/** Newest `ACTIVITY_CAP` activity lines; the log is a diary, not an audit trail. */
+export function capActivity<T extends { at: string }>(xs: T[]): T[] {
+  return [...xs].sort((a, b) => b.at.localeCompare(a.at)).slice(0, ACTIVITY_CAP);
+}
+
 export const TOMBSTONE_TTL_DAYS = 90;
 
 /** Drop tombstones older than the TTL; every live copy has had time to see the delete by then. */
@@ -76,6 +84,7 @@ export function purgeTombstones(data: AppData, now = Date.now(), ttlDays = TOMBS
   const keep = <T extends Stamped>(xs: T[]) => xs.filter((x) => !x.deletedAt || x.deletedAt > cutoff);
   return {
     ...data,
+    activity: keep(data.activity || []),
     projects: keep(data.projects),
     notes: keep(data.notes),
     permits: keep(data.permits),

@@ -13,6 +13,9 @@ import Team from '@/pages/Team';
 import Tools from '@/pages/Tools';
 import Settings from '@/pages/Settings';
 import TimeLog from '@/pages/TimeLog';
+import Files from '@/pages/Files';
+import Inbox from '@/pages/Inbox';
+import Daily from '@/pages/Daily';
 
 export default function App() {
   const { user } = useAuth();
@@ -30,6 +33,9 @@ export default function App() {
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<Dashboard />} />
+        <Route path="daily" element={<Daily />} />
+        <Route path="files" element={<Files />} />
+        <Route path="inbox" element={<Inbox />} />
         <Route path="projects" element={<Projects />} />
         <Route path="projects/:id" element={<ProjectDetail />} />
         <Route path="notes" element={<Notes />} />

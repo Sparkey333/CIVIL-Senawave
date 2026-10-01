@@ -65,6 +65,20 @@ Drive/browser anyway). Without a client id the app runs in offline mode with a l
   A team file shared by Drive needs the `drive` scope on the other users' side (the app cannot see a
   shared file under `drive.file` unless it was picked through the Google Picker, which is not wired in).
 
+## Connections (`src/lib/driveFiles.ts`, `src/lib/gmail.ts`, `src/lib/guidance.ts`)
+
+- **Files page**: `snapshotFolder` walks the shared Design folder with `drive.readonly` (breadth-first, not
+  descending into `.gdb`, caches or backups), `classify` buckets files, `diffSnapshots` reports what changed
+  since the last check (snapshot cached per device in localStorage), and `FILE_EVIDENCE` maps files such as
+  `xref/SheetIndex.dwg` or `xref/imagery/PLAN-01.png` to guide steps so the workflow can be ticked from what
+  exists. `src/data/fluenceDrive.ts` is the 1 Oct 2026 snapshot used before sign-in.
+- **Senawave inbox**: `listSenawaveMail` reads `@senawave.com` threads with `gmail.readonly` (metadata +
+  snippet only), `extractTasks` picks request-like sentences, and the page files messages as notes.
+- **Guidance**: `nextStepFor(project)` turns workflow / sheet / QC state into one next action with its guide
+  tab and commands; `setupChecklist` drives the dashboard's getting-started card.
+- **Activity**: the store stamps an `activity` line on status, workflow, QC, sheet, note, permit and time
+  changes (capped at 600, synced); the Daily page's evening log is built from it.
+
 ## Reference data (`src/data/`)
 
 - `guide.ts` — the Plan Production Guide Rev 5 transcribed into typed arrays (numbers, workflow steps

@@ -11,6 +11,7 @@ import { ProjectForm } from '@/components/ProjectForm';
 import { NoteComposer, NoteList } from '@/components/NoteList';
 import { TimeTable } from '@/components/TimeTable';
 import { StatusBadge } from '@/components/StatusBadge';
+import { NextStep } from '@/components/NextStep';
 import { toast } from '@/components/Toast';
 
 type Tab = 'overview' | 'sheets' | 'workflow' | 'qc' | 'permits' | 'notes' | 'time';
@@ -20,7 +21,7 @@ export default function ProjectDetail() {
   const nav = useNavigate();
   const data = useAppData();
   const project = data.projects.find((p) => p.id === id);
-  const [tab, setTab] = useLocalTab<Tab>('project', 'overview');
+  const [tab, setTab] = useLocalTab<Tab>('project', 'overview', ['overview', 'sheets', 'workflow', 'qc', 'permits', 'notes', 'time']);
 
   if (!project) {
     return (
@@ -57,6 +58,7 @@ export default function ProjectDetail() {
             </select>
           </label>
           {project.driveFolderUrl && <a className="btn sm" href={project.driveFolderUrl} target="_blank" rel="noopener noreferrer">Drive folder ↗</a>}
+          <Link className="btn sm" to="/files">Files</Link>
           {project.arcgisProjectUrl && <a className="btn sm" href={project.arcgisProjectUrl} target="_blank" rel="noopener noreferrer">ArcGIS ↗</a>}
         </div>
       </div>
@@ -118,6 +120,7 @@ function Overview({ project, onDelete }: { project: Project; onDelete: () => voi
         </div>
       </Card>
       <div>
+        <Card title="What to do next" className="tight"><NextStep project={project} /></Card>
         <Card title="At a glance">
           <KV
             rows={[

@@ -321,5 +321,9 @@ table.tbl tr.clickable { cursor: pointer; }
 .toast.bad .toast-action { color: #fff; }
 .toast-action:hover { background: rgba(255,255,255,0.2); }
 
+.next-step { border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: var(--radius-sm); padding: 8px 10px; background: var(--accent-soft); margin-top: 8px; }
+.next-step.compact { padding: 6px 8px; }
+.next-step-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); font-weight: 700; }
+.next-step-title { font-weight: 600; }
 .symbol-sheet { width: 100%; height: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); background: #fff; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }

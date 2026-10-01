@@ -53,7 +53,11 @@ export function isAllowed(email: string): boolean {
 }
 
 function driveScope(): string {
-  return getState().settings.driveScope === 'drive' ? SCOPES.driveFull : SCOPES.driveFile;
+  const s = getState().settings;
+  const scopes = [s.driveScope === 'drive' ? SCOPES.driveFull : SCOPES.driveFile];
+  if (s.driveFilesEnabled && s.driveScope !== 'drive') scopes.push(SCOPES.driveReadonly);
+  if (s.gmailEnabled) scopes.push(SCOPES.gmailReadonly);
+  return scopes.join(' ');
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {

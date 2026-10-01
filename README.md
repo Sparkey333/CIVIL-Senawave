@@ -20,7 +20,10 @@ tracking, one 450 KB bundle.
 | **Plan Production Guide** | Rev 5 as tables: the numbers, whole-job checklist, ArcGIS scripts and options, BricsCAD import, per-sheet recipe, side panel / vicinity / basemaps, titleblocks, QC, troubleshooting, all 34 SENA commands, layer standard with colour swatches, symbol library (with the symbol sheet image), old-layer migration map, maintenance rules, and a calculator (sheets per run, clip rectangle, text heights, symbol scale). |
 | **Team & company** | People cards with verified / partly verified / unverified badges and sources (David Bradshaw verified; Jesse Montgomery not found publicly — to confirm), Senawave facts with sources, BEAD award, franchise agreements by city, service area, and the original Indeed PE / Engineer-of-Record posting with what it implies for the design seat. |
 | **Tools & integrations** | Quick links (Drive, Gusto, BricsCAD, ArcGIS, UDOT, Blue Stakes, UBC, DOPL), Google Drive layout, Gusto invoicing notes, BricsCAD and ArcGIS Pro setup checklists from the guide, agencies and permit types. |
-| **Settings** | Google sign-in, owner and allowed emails, hourly rate, theme, Drive sync (folder, scope, shared file id, auto-sync, whether the time log goes in the file), JSON export / import (merge or replace), local backups with restore, delete sample data, reset. Rate, theme and this device's sync settings never leave the browser. |
+| **Daily brief & log** | Morning: setup checklist, today's meetings and due items, one next step per project (from the guide order), open actions, Drive changes in the last 24 h. Evening: everything you ticked, added and logged today, hours, next steps and open items as text to save as a note or paste into an email. |
+| **Files (Drive)** | The shared Senawave *Design* folder (Templates + Projects, owned by Jesse) read-only: project folder grouped into drawing / xrefs / imagery / GIS / docs / scripts, changes since your last check, and "these files say step X is done" suggestions for the workflow. Ships with a snapshot taken 1 Oct 2026 so it works before Google sign-in. |
+| **Senawave inbox** | Read-only Gmail limited to @senawave.com threads. File any message as a meeting note, decision or action; likely tasks are pulled out of the text as one-click actions. |
+| **Settings** | Google sign-in, connections (read-only Drive for the Design folder, read-only Gmail), owner and allowed emails, hourly rate, theme, Drive sync (folder, scope, shared file id, auto-sync, whether the time log goes in the file), JSON export / import (merge or replace), local backups with restore, delete sample data, reset. Rate, theme and this device's sync settings never leave the browser. |
 
 The sample project (`26-0001 SAMPLE — Brigham City north corridor`) is seeded so nothing is empty on first
 open. Delete it from Settings once real work is in.
@@ -49,7 +52,8 @@ account's My Drive and merges record-by-record (newest wins) on every sync.
 2. **APIs & Services → Library** → enable **Google Drive API**.
 3. **APIs & Services → OAuth consent screen** → External → fill the app name and your email → add scopes
    `openid`, `email`, `profile`, `https://www.googleapis.com/auth/drive.file` (add
-   `…/auth/drive` only if you will use a shared team file, see below) → **Test users**: add your Gmail, and
+   `…/auth/drive` only if you will use a shared team file, see below; `…/auth/drive.readonly` for the Files page;
+   `…/auth/gmail.readonly` for the Senawave inbox) → **Test users**: add your Gmail, and
    later David's and Jesse's. Leave the app in *Testing*; with test users nothing needs Google verification.
 4. **APIs & Services → Credentials → Create credentials → OAuth client ID → Web application**.
    Authorized JavaScript origins: `http://localhost:5173`, `http://localhost:4173`, and the URL you host at

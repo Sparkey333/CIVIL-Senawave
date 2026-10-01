@@ -20,23 +20,24 @@ describe('soft delete and undo', () => {
   });
 
   it('deleting a project buries its permits and restoring brings them back together', () => {
-    const p = S.getView().projects[0];
+    const p = S.getView().projects.find((x) => x.id === 'prj_sample_1')!;
     const permitIds = S.getView().permits.filter((x) => x.projectId === p.id).map((x) => x.id);
     expect(permitIds.length).toBeGreaterThan(0);
+    const before = S.getView().projects.length;
     S.deleteProject(p.id);
-    expect(S.getView().projects.length).toBe(0);
+    expect(S.getView().projects.length).toBe(before - 1);
     expect(S.getView().permits.filter((x) => x.projectId === p.id)).toEqual([]);
     S.restoreProject(p.id);
-    expect(S.getView().projects[0].id).toBe(p.id);
+    expect(S.getView().projects.some((x) => x.id === p.id)).toBe(true);
     expect(S.getView().permits.filter((x) => x.projectId === p.id).map((x) => x.id).sort()).toEqual(permitIds.sort());
   });
 
   it('removeSampleData tombstones instead of dropping, so the removal syncs', () => {
     S.removeSampleData();
     expect(S.hasSampleData(S.getView())).toBe(false);
-    expect(S.getView().projects.length).toBe(0);
-    expect(S.getState().projects.length).toBe(1);
-    expect(S.getState().projects[0].deletedAt).toBeTruthy();
+    expect(S.getView().projects.some((p) => p.sample)).toBe(false);
+    expect(S.getView().projects.some((p) => p.id === 'prj_fluence')).toBe(true);
+    expect(S.getState().projects.find((p) => p.id === 'prj_sample_1')?.deletedAt).toBeTruthy();
     expect(S.getView().notes.some((n) => n.id === 'note_welcome')).toBe(true);
   });
 
@@ -58,12 +59,12 @@ describe('import validation and migration', () => {
   });
 
   it('migrate tolerates garbage and fills defaults', () => {
-    expect(S.migrate(null).projects.length).toBe(1);
+    expect(S.migrate(null).projects.length).toBe(2);
     const m = S.migrate({ projects: [], settings: { ownerName: 'X' } });
     expect(m.settings.ownerName).toBe('X');
     expect(m.settings.syncTimeEntries).toBe(true);
     expect(m.team.length).toBe(4);
-    expect(m.version).toBe(2);
+    expect(m.version).toBe(3);
   });
 
   it('applyRemote throws on a broken Drive file instead of merging it', () => {
@@ -90,5 +91,33 @@ describe('backups', () => {
     S.updateSettings({ ownerName: 'Persisted Name' });
     S.flushPersist();
     expect(JSON.parse(localStorage.getItem(S.STORAGE_KEY) || '{}').settings.ownerName).toBe('Persisted Name');
+  });
+});
+
+describe('activity log', () => {
+  it('records status, workflow, sheet and note changes for the evening log', () => {
+    S.setState(seedData(), { touch: false });
+    const p = S.getView().projects.find((x) => x.id === 'prj_fluence')!;
+    S.updateProject(p.id, { status: 'qc' });
+    S.updateProject(p.id, (x) => ({ workflow: { ...x.workflow, 'start-units': true } }));
+    S.updateProject(p.id, (x) => ({ sheets: x.sheets.map((s) => ({ ...s, aligned: true })) }));
+    S.addNote(S.newNote('me', { title: 'hello', projectId: p.id, type: 'action' }));
+    S.addTimeEntry(S.newTimeEntry({ projectId: p.id, hours: 2, description: 'work' }));
+    const today = S.localDay(new Date().toISOString());
+    const labels = S.activityOn(S.getView(), today).map((a) => a.label);
+    expect(labels.some((l) => /status → QC/.test(l))).toBe(true);
+    expect(labels.some((l) => /done — SENAUNITS/.test(l))).toBe(true);
+    expect(labels.some((l) => /PLAN-01 aligned/.test(l))).toBe(true);
+    expect(labels.some((l) => /action: hello/.test(l))).toBe(true);
+    expect(labels.some((l) => /2 h — work/.test(l))).toBe(true);
+  });
+
+  it('adds the Fluence project once to older data, but not after it was deleted', () => {
+    const old = { ...seedData(), projects: [], notes: [] };
+    expect(S.migrate(old).projects.some((p) => p.id === 'prj_fluence')).toBe(true);
+    const deleted = { ...seedData(), projects: [{ ...seedData().projects[0], deletedAt: new Date().toISOString() }] };
+    const m = S.migrate(deleted);
+    expect(m.projects.filter((p) => p.id === 'prj_fluence').length).toBe(1);
+    expect(m.projects[0].deletedAt).toBeTruthy();
   });
 });

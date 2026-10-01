@@ -5,9 +5,16 @@ import { QC_CHECKLIST, WORKFLOW_STEPS, TWO_NUMBERS } from '@/data/guide';
 import { daysUntil, fmtDate, todayIso } from '@/lib/ids';
 import { Badge, Card, Progress, Stat } from '@/components/ui';
 import { StatusBadge } from '@/components/StatusBadge';
+import { NextStep } from '@/components/NextStep';
+import { setupChecklist } from '@/lib/guidance';
+import { useAuth } from '@/lib/auth';
+import { loadSnapshot } from '@/lib/driveFiles';
 
 export default function Dashboard() {
   const data = useAppData();
+  const { user, googleConfigured } = useAuth();
+  const setup = setupChecklist(data, { googleSignedIn: user?.mode === 'google', googleConfigured, driveSnapshot: !!loadSnapshot() });
+  const setupDone = setup.filter((s) => s.done).length;
   const active = data.projects.filter((p) => p.status !== 'closed');
   const openActions = data.notes.filter((n) => (n.type === 'action' || n.type === 'redline' || n.type === 'agency-comment') && !n.done);
   const sheetsTotal = active.reduce((a, p) => a + p.sheets.length, 0);
@@ -25,6 +32,18 @@ export default function Dashboard() {
 
   return (
     <>
+      {setupDone < setup.length && (
+        <Card title={`Getting set up · ${setupDone}/${setup.length}`} subtitle="Baby steps, in order. Each one is a link; the hint says where to click." className="tight">
+          <ul className="check-list">
+            {setup.map((s) => (
+              <li key={s.id} className={s.done ? 'done' : ''}>
+                <input type="checkbox" checked={s.done} readOnly />
+                <label><Link to={s.to}>{s.label}</Link><span className="meta" style={{ fontFamily: 'inherit' }}>{s.done ? '' : s.hint}</span></label>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
       <div className="grid cols-4" style={{ marginBottom: 16 }}>
         <Card className="tight"><Stat value={active.length} label="active projects" /></Card>
         <Card className="tight"><Stat value={`${sheetsDone}/${sheetsTotal}`} label="plan sheets through QC" /></Card>
@@ -57,6 +76,7 @@ export default function Dashboard() {
                   <div><small>Workflow</small><Progress value={wfDone} total={WORKFLOW_STEPS.length} /></div>
                   <div><small>QC</small><Progress value={qcDone} total={QC_CHECKLIST.length} /></div>
                 </div>
+                {!p.sample && <NextStep project={p} compact />}
               </div>
             );
           })}

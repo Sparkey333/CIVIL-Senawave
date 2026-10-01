@@ -70,7 +70,17 @@ Haven ~68%, Logan ~8%, Providence ~98%, Cache County ~2,900 fiber locations). So
 
 Other Senawave people found: Ladd Marshall (CRO; SVP Sales 2014–20; addressed Cottonwood Heights council Mar 2024), Chris Brown (CTO), Mickel Thorsen (Technical Specialist), Brian Papworth (represented the company at Box Elder County Commission, Jan 2026, title unknown). ZoomInfo/RocketReach staff lists also show Avery Hill, Maxwell Lopez, Nicholas Chevalier, Garrett King. 🟡
 
-## 3. Jesse Montgomery — ❌ not found in connection with Senawave
+## 3. Jesse Montgomery — ✅ verified on 1 Oct 2026 (from your own mailbox and Drive)
+
+**Update 1 Oct 2026.** Jesse is Senawave's design / GIS lead and your day-to-day contact: every Senawave email
+to you comes from **jessem@senawave.com** (Fiber Introduction 24 Sep, Fluence geopackage 25 Sep, Getting
+started 29 Sep, Stamped plans and Hours 30 Sep, Meeting 1 Oct), Jesse owns the shared *Design* Drive folder and
+all of its files, hosts the Google Meet check-ins, and relays priorities from Dave ("finish out Fluence first
+and then we can move on to BEAD"). David's address is **david@senawave.com** (hours, ACH, licences). The public
+web search below still finds nothing, which is normal for an internal GIS/design role; the section is kept for
+the record.
+
+### Original search (29 Sep 2026) — ❌ not found in public sources
 
 About 20 query variants ("Jesse Montgomery" + Senawave / Sena Wave / Vaix / Utah fiber / broadband /
 telecom / GIS / CAD / OSP / project manager / civil / surveying / UTOPIA / Ansom / "UT Light" / "Utah Light"
