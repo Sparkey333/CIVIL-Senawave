@@ -10,6 +10,7 @@ export const STORAGE_KEY = 'senawave-tracker:v1';
 const BACKUP_PREFIX = 'senawave-tracker:backup:';
 const BACKUP_DAY_KEY = 'senawave-tracker:backup-day';
 export const BACKUPS_KEPT = 3;
+let snapshotSeq = 0;
 
 type Listener = () => void;
 
@@ -165,7 +166,8 @@ function maybeDailyBackup(s: Storage) {
 export function snapshot(reason: string): string | null {
   const s = storage();
   if (!s) return null;
-  const key = `${BACKUP_PREFIX}${nowIso()}`;
+  // Timestamp plus a sequence so two snapshots in the same millisecond never share a key.
+  const key = `${BACKUP_PREFIX}${nowIso()}-${String(++snapshotSeq).padStart(4, '0')}`;
   try {
     s.setItem(key, JSON.stringify({ reason, savedAt: nowIso(), data: state }));
   } catch (err) {
