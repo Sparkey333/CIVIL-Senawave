@@ -41,7 +41,7 @@ removed or demoted from inside the app, whatever the people list or the owner fi
 ## Shared on claude.ai
 
 The tracker is published as a claude.ai artifact that declares five runtime capabilities: `db` (the shared store),
-`user` (who is viewing, with name and email), `mcp` (the viewer's Google Drive, Gmail and Google Calendar connectors,
+`user` (who is viewing and their display name; claude.ai does not give this page email addresses, so the owner is recognised by `isOwner()`), `mcp` (the viewer's Google Drive, Gmail and Google Calendar connectors,
 limited to the tools listed in `MCP_MANIFEST` in `src/lib/connectors.ts`), `sample` (the in-app analysis, on the
 viewer's own account) and `downloads` (saving backup and archive files).
 

@@ -55,7 +55,7 @@ release is newer and wins everywhere, including in the shared store.
 Three modes: `claude` (inside claude.ai), `google` and `offline`.
 
 **claude.ai mode.** When `window.claude` exists (the page is framed by claude.ai) and this device has not opted out,
-`AuthProvider` asks `claude.use("user")` for `me()` (id, name, email, `isOwner`) and `can("data.write")`, shows a
+`AuthProvider` asks `claude.use("user")` for `me()` (id, display name, `isOwner`; the email scope is not offered, so email is null and the owner check carries the admin role) and `can("data.write")`, shows a
 short splash meanwhile, and falls back to the sign-in page if the capability resolves `null` (10 s at most).
 `roleForClaude` makes the owner and `PERMANENT_ADMINS` admins, anyone claude.ai will not let write (or whose save
 was refused) a viewer, everyone else an editor. The display name comes from the data (the owner's name, or the
