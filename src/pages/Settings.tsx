@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { exportJson, hasSampleData, importJson, listBackups, removeSampleData, resetToSeed, restoreBackup, updateSettings, useAppData } from '@/store/store';
 import { useAuth } from '@/lib/auth';
 import { parseDriveId } from '@/lib/drive';
 import { syncWithDrive } from '@/lib/sync';
-import { GOOGLE_CLIENT_ID } from '@/lib/google';
+import { clientIdFromBuild, getGoogleClientId, isValidClientId } from '@/lib/google';
+import { copyText, downloadText } from '@/lib/download';
+import { roleLabel } from '@/lib/roles';
+import { PeopleCard } from '@/components/PeopleCard';
 import { Badge, Callout, Card, ConfirmButton, Field } from '@/components/ui';
 import { toast } from '@/components/Toast';
 import { fmtDateTime } from '@/lib/ids';
@@ -11,39 +14,38 @@ import { fmtDateTime } from '@/lib/ids';
 export default function Settings() {
   const data = useAppData();
   const s = data.settings;
-  const { user, signInWithGoogle, signOut, getToken, googleConfigured, busy } = useAuth();
+  const { user, signInWithGoogle, signOut, getToken, googleConfigured, busy, role, isAdmin, canEdit, saveClientId, finishJoin } = useAuth();
+  const [clientIdDraft, setClientIdDraft] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
   const [importMode, setImportMode] = useState<'merge' | 'replace'>('merge');
   const [driveInput, setDriveInput] = useState(s.driveFileId);
   const [syncing, setSyncing] = useState(false);
-  // Edited as free text and committed on blur, so a newline typed between emails is not swallowed.
-  const [emailsDraft, setEmailsDraft] = useState(s.allowedEmails.join('\n'));
-  useEffect(() => setEmailsDraft(s.allowedEmails.join('\n')), [s.allowedEmails]);
-  const commitEmails = () => updateSettings({ allowedEmails: emailsDraft.split(/[\n,;]+/).map((x) => x.trim().toLowerCase()).filter(Boolean) });
   const [backups, setBackups] = useState(() => listBackups());
   const refreshBackups = () => setBackups(listBackups());
 
   const download = () => {
-    const blob = new Blob([exportJson()], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `senawave-tracker-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    const ok = downloadText(`senawave-tracker-${new Date().toISOString().slice(0, 10)}.json`, exportJson());
+    toast(ok ? 'Backup file saved.' : 'This view blocks downloads. Use "Copy to clipboard" instead.', ok ? 'ok' : 'bad');
   };
 
   const onImport = async (f: File | undefined) => {
     if (!f) return;
-    const r = importJson(await f.text(), importMode);
-    toast(r.ok ? `Imported (${importMode}).` : `Import failed: ${r.error}`, r.ok ? 'ok' : 'bad');
+    const mode = isAdmin ? importMode : 'merge';
+    const r = importJson(await f.text(), mode);
+    if (!r.ok) toast(`Import failed: ${r.error}`, 'bad');
+    else if (r.archive) toast(`Project archive "${r.archive}" merged in: ${r.changes?.added ?? 0} new, ${r.changes?.updated ?? 0} updated.`);
+    else if (r.changes) toast(`Merged: ${r.changes.added} new, ${r.changes.updated} updated. Newest edit wins on each row.`);
+    else toast('Imported (everything replaced; the old data was backed up first).');
+    refreshBackups();
     if (fileRef.current) fileRef.current.value = '';
   };
 
   const sync = async () => {
     setSyncing(true);
     try {
-      const r = await syncWithDrive(getToken);
-      toast(r.pulled ? 'Synced with Drive.' : 'Created the sync file in Drive.');
+      const r = await syncWithDrive(getToken, { pullOnly: !canEdit });
+      finishJoin();
+      toast(!r.pushed ? 'Updated from Drive (view only).' : r.pulled ? 'Synced with Drive.' : 'Created the sync file in Drive.');
       setDriveInput(r.file.id);
     } catch (err) {
       toast(`Drive sync failed: ${(err as Error).message}`, 'bad');
@@ -58,15 +60,26 @@ export default function Settings() {
         <Card title="Account">
           <div className="stack">
             <div className="row between"><span>Signed in as</span><span>{user?.name} {user?.mode === 'google' ? <Badge kind="ok">{user.email}</Badge> : <Badge kind="warn">offline mode</Badge>}</span></div>
-            <div className="row between"><span>Google client id</span>{googleConfigured ? <Badge kind="ok" mono>{GOOGLE_CLIENT_ID.slice(0, 14)}…</Badge> : <Badge kind="warn">not configured</Badge>}</div>
+            <div className="row between"><span>Your access</span><Badge kind={role === 'viewer' ? 'info' : 'ok'}>{roleLabel(role, user?.mode)}</Badge></div>
+            <div className="row between"><span>Google client id</span>{googleConfigured ? <Badge kind="ok" mono>{getGoogleClientId().slice(0, 14)}…{clientIdFromBuild ? ' (from build)' : ''}</Badge> : <Badge kind="warn">not set up</Badge>}</div>
           </div>
           <div className="row" style={{ marginTop: 10 }}>
             {user?.mode !== 'google' && googleConfigured && <button className="btn primary sm" onClick={() => void signInWithGoogle()} disabled={busy}>Sign in with Google</button>}
             <button className="btn sm" onClick={signOut}>Sign out</button>
           </div>
+          {!clientIdFromBuild && isAdmin && (
+            <div style={{ marginTop: 12 }}>
+              <Field label={googleConfigured ? 'Replace the Google client id' : 'Google client id'} hint={`From Google Cloud Console → Credentials → OAuth client ID (Web). Add ${typeof window !== 'undefined' ? window.location.origin : 'this site'} under Authorized JavaScript origins. Saved on this device only.`}>
+                <div className="row">
+                  <input value={clientIdDraft} onChange={(e) => setClientIdDraft(e.target.value)} placeholder="1234567890-abc….apps.googleusercontent.com" />
+                  <button className="btn sm primary" disabled={!isValidClientId(clientIdDraft)} onClick={() => { saveClientId(clientIdDraft); setClientIdDraft(''); toast('Client id saved. Sign in with Google to continue.'); }}>Save</button>
+                </div>
+              </Field>
+            </div>
+          )}
           {!googleConfigured && (
             <Callout kind="info">
-              <p><strong>To enable Google sign-in and Drive sync:</strong> create an OAuth 2.0 Web client in Google Cloud Console (enable the Google Drive API, add this site's origin), put the client id in <code>.env.local</code> as <code>VITE_GOOGLE_CLIENT_ID</code>, add yourself, David and Jesse as test users on the consent screen, and rebuild. Step-by-step in the README.</p>
+              <p><strong>To turn on the online mode:</strong> create an OAuth client in Google Cloud Console (Drive API on, consent screen with you and jessem@senawave.com as test users), paste its client id above, then sign in. The sign-in page lists each step. Offline mode keeps working without any of this.</p>
             </Callout>
           )}
         </Card>
@@ -97,13 +110,12 @@ export default function Settings() {
           )}
         </Card>
 
-        <Card title="Owner & access" subtitle="Who may sign in. Empty list = only the owner. Google sign-in checks this list; offline mode does not.">
+        <PeopleCard />
+
+        <Card title="You and this device" subtitle="The owner is the admin. Rate and theme stay on this device.">
           <div className="form-grid">
-            <Field label="Owner name"><input value={s.ownerName} onChange={(e) => updateSettings({ ownerName: e.target.value })} /></Field>
-            <Field label="Owner Google email"><input type="email" value={s.ownerEmail} onChange={(e) => updateSettings({ ownerEmail: e.target.value })} /></Field>
-            <Field label="Also allowed (one email per line)" className="span-all" hint="Add David's and Jesse's Google emails here when you share the tool.">
-              <textarea value={emailsDraft} onChange={(e) => setEmailsDraft(e.target.value)} onBlur={commitEmails} style={{ minHeight: 70 }} placeholder={'david@…\njesse@…'} />
-            </Field>
+            <Field label="Owner name"><input value={s.ownerName} disabled={!isAdmin} onChange={(e) => updateSettings({ ownerName: e.target.value })} /></Field>
+            <Field label="Owner Google email" hint="The owner is always an admin and owns the Drive file."><input type="email" value={s.ownerEmail} disabled={!isAdmin} onChange={(e) => updateSettings({ ownerEmail: e.target.value })} /></Field>
             <Field label="Your hourly rate ($/h)" hint="Totals the time log. Stays on this device: it is never written to the Drive file.">
               <input type="number" min={0} step={1} value={s.hourlyRate ?? ''} onChange={(e) => updateSettings({ hourlyRate: e.target.value === '' ? null : Number(e.target.value) })} />
             </Field>
@@ -128,7 +140,7 @@ export default function Settings() {
                 <option value="drive">drive (shared team file)</option>
               </select>
             </Field>
-            <Field label="Sync file id or share link" className="span-all" hint="Leave blank to auto-create. To share with David and Jesse: share the file in Drive, they paste the link here with scope = drive.">
+            <Field label="Sync file id or share link" className="span-all" hint="Leave blank to auto-create. To work on a file someone shared with you, paste its link here with scope = drive (an invite link does this for you).">
               <div className="row">
                 <input value={driveInput} onChange={(e) => setDriveInput(e.target.value)} placeholder="https://drive.google.com/file/d/…/view" />
                 <button className="btn sm" onClick={() => { updateSettings({ driveFileId: parseDriveId(driveInput) }); toast('Sync file set.'); }}>Set</button>
@@ -149,22 +161,33 @@ export default function Settings() {
             </Field>
           </div>
           <div className="row" style={{ marginTop: 10 }}>
-            <button className="btn primary sm" onClick={() => void sync()} disabled={syncing || user?.mode !== 'google'}>{syncing ? 'Syncing…' : 'Sync now'}</button>
+            <button className="btn primary sm" onClick={() => void sync()} disabled={syncing || user?.mode !== 'google'}>{syncing ? 'Syncing…' : canEdit ? 'Sync now' : 'Update from Drive'}</button>
             {user?.mode !== 'google' && <span className="muted" style={{ fontSize: 12.5 }}>Sign in with Google to sync.</span>}
             {s.driveFileId && <a className="btn sm ghost" href={`https://drive.google.com/file/d/${s.driveFileId}/view`} target="_blank" rel="noopener noreferrer">Open file in Drive ↗</a>}
           </div>
           <p className="faint" style={{ fontSize: 12, marginTop: 8 }}>Data last changed {fmtDateTime(data.updatedAt)}. Rate, theme, auto-sync and this device's sync settings never leave this browser; deletes travel as hidden markers so the other copy drops them too.</p>
         </Card>
 
-        <Card title="Backup, import, sample data">
+        <Card title="Archive and update (works offline)" subtitle="Four ways to keep a copy and to bring changes in. None of them need Google or a network.">
+          <ol className="plain-list" style={{ marginBottom: 12 }}>
+            <li><strong>Archive everything:</strong> save one backup file of all projects, notes, prints, redlines and settings (your rate included).</li>
+            <li><strong>Archive one project:</strong> on a project's Overview, save just that project as a file to keep or send. It never includes your rate or the people list.</li>
+            <li><strong>Update:</strong> import a file. Merge keeps both sides and the newest edit wins on each row. Replace swaps everything (admin only, and the old data is backed up first).</li>
+            <li><strong>Local backups:</strong> the app keeps the three newest copies in this browser and writes one before every risky step.</li>
+          </ol>
           <div className="row">
-            <button className="btn sm" onClick={download}>Export JSON</button>
-            <select value={importMode} onChange={(e) => setImportMode(e.target.value as typeof importMode)} style={{ width: 'auto' }}>
+            <button className="btn sm" onClick={download}>Save backup file</button>
+            <button className="btn sm" onClick={() => void copyText(exportJson()).then((ok) => toast(ok ? 'Backup copied to the clipboard.' : 'Clipboard blocked.', ok ? 'ok' : 'bad'))}>Copy to clipboard</button>
+          </div>
+          <hr />
+          <div className="row">
+            <select value={isAdmin ? importMode : 'merge'} disabled={!isAdmin} onChange={(e) => setImportMode(e.target.value as typeof importMode)} style={{ width: 'auto' }} aria-label="Import mode">
               <option value="merge">Import: merge (newest wins)</option>
               <option value="replace">Import: replace everything</option>
             </select>
-            <input ref={fileRef} type="file" accept="application/json,.json" style={{ width: 'auto' }} onChange={(e) => void onImport(e.target.files?.[0])} />
+            <input ref={fileRef} type="file" accept="application/json,.json" style={{ width: 'auto' }} disabled={!canEdit} onChange={(e) => void onImport(e.target.files?.[0])} aria-label="Import a backup or project archive file" />
           </div>
+          <p className="faint" style={{ fontSize: 12, marginTop: 6 }}>A project archive file is always merged, whatever the mode says.</p>
           <hr />
           <div className="row">
             {hasSampleData(data) ? (
@@ -172,9 +195,9 @@ export default function Settings() {
             ) : (
               <Badge kind="ok">no sample data</Badge>
             )}
-            <ConfirmButton label="Reset everything to defaults" confirmLabel="Yes, wipe and reseed" onConfirm={() => { resetToSeed(true); toast('Reset to seed data (settings kept).'); }} />
+            {isAdmin && <ConfirmButton label="Reset everything to defaults" confirmLabel="Yes, wipe and reseed" onConfirm={() => { resetToSeed(true); toast('Reset to seed data (settings kept).'); }} />}
           </div>
-          <p className="faint" style={{ fontSize: 12, marginTop: 8 }}>Data is stored in this browser (localStorage) and, when synced, in your Drive file. Export before clearing browser data. Exports include everything on this device, your rate included.</p>
+          <p className="faint" style={{ fontSize: 12, marginTop: 8 }}>Data is stored in this browser (localStorage) and, when synced, in your Drive file. Save a backup file before clearing browser data.</p>
         </Card>
 
         <Card title="Local backups" subtitle="A copy is kept once a day and before any import-replace, reset or restore. The three newest are kept in this browser." actions={<button className="btn sm ghost" onClick={refreshBackups}>Refresh</button>}>

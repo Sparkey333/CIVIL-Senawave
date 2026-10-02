@@ -168,10 +168,26 @@ export interface TeamMember {
   updatedAt: string;
 }
 
+export type Role = 'admin' | 'editor' | 'viewer';
+
+export const ROLES: { id: Role; label: string; hint: string }[] = [
+  { id: 'admin', label: 'Admin', hint: 'Everything, including who has access and resetting data. Gets edit access to the Drive file.' },
+  { id: 'editor', label: 'Editor', hint: 'Add and change projects, prints, redlines, notes and time. Gets edit access to the Drive file.' },
+  { id: 'viewer', label: 'Viewer', hint: 'Read only. Gets view-only access to the Drive file, which Google enforces.' },
+];
+
+export interface Member {
+  email: string; // lower case
+  name: string;
+  role: Role;
+  addedAt: string;
+}
+
 export interface Settings {
   ownerName: string;
   ownerEmail: string;
-  allowedEmails: string[]; // who may sign in (in addition to owner)
+  /** People who may sign in with Google, with what they may do. The owner is always an admin and is not listed here. */
+  members: Member[];
   hourlyRate: number | null; // your contract rate, for the time log
   driveFileId: string; // shared JSON file id (optional; auto-created when blank)
   driveFolderName: string;

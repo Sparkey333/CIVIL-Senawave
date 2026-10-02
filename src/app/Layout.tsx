@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
+import { roleLabel } from '@/lib/roles';
 import { useAppData } from '@/store/store';
 import { SyncButton } from '@/components/SyncButton';
 import { ToastHost } from '@/components/Toast';
@@ -35,7 +36,7 @@ const TITLES: Record<string, string> = {
 };
 
 export function Layout() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, role } = useAuth();
   const data = useAppData();
   const loc = useLocation();
   const openActions = data.notes.filter((n) => n.type === 'action' && !n.done).length;
@@ -80,7 +81,7 @@ export function Layout() {
             <span className="avatar">{user?.picture ? <img src={user.picture} alt="" referrerPolicy="no-referrer" /> : initials(user?.name || '?')}</span>
             <span style={{ minWidth: 0 }}>
               <div style={{ fontWeight: 600, color: '#e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.name}</div>
-              <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.mode === 'google' ? user.email : 'Offline mode'}</div>
+              <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.mode === 'google' ? `${roleLabel(role)} · ${user.email}` : 'Offline mode'}</div>
             </span>
           </div>
           <button className="btn sm ghost" style={{ color: '#94a3b8' }} onClick={signOut}>

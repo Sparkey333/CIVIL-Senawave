@@ -1,6 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { GOOGLE_CLIENT_ID, SCOPES, fetchProfile, readStoredToken, requestToken, revokeToken, storeToken, type GoogleProfile, type TokenInfo } from './google';
-import { getState, setActor, updateSettings } from '@/store/store';
+import { SCOPES, fetchProfile, getGoogleClientId, readStoredToken, requestToken, revokeToken, setGoogleClientId, storeToken, type GoogleProfile, type TokenInfo } from './google';
+import { getState, setActor, setWriteLock, updateSettings, useAppData } from '@/store/store';
+import { canWrite, roleFor, roleWithInvite } from './roles';
+import { clearProvisional, isProvisional } from './provisional';
+import type { Role } from './types';
 
 export type AuthMode = 'google' | 'offline';
 
@@ -17,6 +20,14 @@ interface AuthState {
   busy: boolean;
   error: string | null;
   googleConfigured: boolean;
+  /** What this person may do: admin, editor, viewer. Offline mode is admin of this device's data. */
+  role: Role | null;
+  isAdmin: boolean;
+  canEdit: boolean;
+  /** Call after the first successful pull of a shared file: the synced people list now decides access. */
+  finishJoin: () => void;
+  /** Save a Google client id on this device (ignored when one is baked into the build). */
+  saveClientId: (id: string) => void;
   signInWithGoogle: () => Promise<void>;
   continueOffline: (name?: string, email?: string) => void;
   signOut: () => void;
@@ -46,10 +57,7 @@ function writeUser(u: AuthUser | null) {
 }
 
 export function isAllowed(email: string): boolean {
-  const s = getState().settings;
-  const list = [s.ownerEmail, ...s.allowedEmails].map((e) => e.trim().toLowerCase()).filter(Boolean);
-  if (list.length === 0) return true;
-  return list.includes(email.trim().toLowerCase());
+  return roleFor(getState().settings, { email, mode: 'google' }) !== null;
 }
 
 function driveScope(): string {
@@ -65,6 +73,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<TokenInfo | null>(() => readStoredToken());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [clientId, setClientIdState] = useState(() => getGoogleClientId());
+  const data = useAppData();
+  const [provisional, setProvisionalState] = useState(() => isProvisional());
+  const role = roleWithInvite(data.settings, user, provisional);
+  const finishJoin = useCallback(() => {
+    clearProvisional();
+    setProvisionalState(false);
+  }, []);
+
+  const saveClientId = useCallback((id: string) => {
+    setGoogleClientId(id);
+    setClientIdState(getGoogleClientId());
+    setError(null);
+  }, []);
 
   const signInWithGoogle = useCallback(async () => {
     setBusy(true);
@@ -73,9 +95,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const scope = `${SCOPES.identity} ${driveScope()}`;
       const t = await requestToken(scope, { hint: getState().settings.ownerEmail || undefined });
       const profile: GoogleProfile = await fetchProfile(t.accessToken);
-      if (!isAllowed(profile.email)) {
+      if (!isAllowed(profile.email) && !isProvisional()) {
         revokeToken(t.accessToken);
-        throw new Error(`${profile.email} is not on the allowed list. Add it under Settings → Access on the owner's device.`);
+        throw new Error(`${profile.email} is not on the people list yet. Ask ${getState().settings.ownerName || 'the owner'} to add it under Settings → People and access.`);
       }
       const u: AuthUser = { email: profile.email, name: profile.name, picture: profile.picture, mode: 'google' };
       // First Google sign-in on a fresh install claims ownership.
@@ -132,17 +154,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setActor(user?.name || '');
   }, [user]);
 
+  // View-only access: every edit on this device is refused in the store.
   useEffect(() => {
-    // Drop a stale Google session when the client id was removed from the build.
-    if (user?.mode === 'google' && !GOOGLE_CLIENT_ID) {
+    setWriteLock(!!user && role === 'viewer');
+  }, [user, role]);
+
+  useEffect(() => {
+    // Drop a stale Google session when the client id was removed.
+    if (user?.mode === 'google' && !clientId) {
       writeUser(null);
       setUser(null);
     }
-  }, [user]);
+  }, [user, clientId]);
+
+  useEffect(() => {
+    // Taken off the people list while signed in: back to the sign-in page.
+    if (user?.mode === 'google' && role === null) {
+      if (token) revokeToken(token.accessToken);
+      storeToken(null);
+      writeUser(null);
+      setToken(null);
+      setUser(null);
+      setError(`${user.email} is no longer on the people list. Ask ${data.settings.ownerName || 'the owner'} to add it again.`);
+    }
+  }, [user, role, token, data.settings.ownerName]);
 
   const value = useMemo<AuthState>(
-    () => ({ user, token, busy, error, googleConfigured: !!GOOGLE_CLIENT_ID, signInWithGoogle, continueOffline, signOut, getToken }),
-    [user, token, busy, error, signInWithGoogle, continueOffline, signOut, getToken],
+    () => ({ user, token, busy, error, googleConfigured: !!clientId, role, isAdmin: role === 'admin', canEdit: canWrite(role), finishJoin, saveClientId, signInWithGoogle, continueOffline, signOut, getToken }),
+    [user, token, busy, error, clientId, role, finishJoin, saveClientId, signInWithGoogle, continueOffline, signOut, getToken],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

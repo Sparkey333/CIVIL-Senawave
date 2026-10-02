@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import * as S from './store';
 import { seedData } from './seed';
 import { parseAnalysis } from '@/lib/prints';
@@ -199,5 +199,72 @@ describe('prints, redlines and analysis', () => {
     delete legacy.redlines;
     expect(S.validateAppData(legacy)).toBeNull();
     expect(() => S.applyRemote(legacy)).not.toThrow();
+  });
+});
+
+describe('roles in the store', () => {
+  afterEach(() => S.setWriteLock(false));
+
+  it('refuses edits while view-only, with nothing saved, but still pulls other people\'s changes in', () => {
+    const before = S.getView().notes.length;
+    S.setWriteLock(true);
+    S.addNote(S.newNote('x', { title: 'should not land' }));
+    S.updateProject('prj_fluence', { name: 'changed' });
+    S.deleteNote(S.getView().notes[0].id);
+    expect(S.getView().notes.length).toBe(before);
+    expect(S.getView().projects.find((p) => p.id === 'prj_fluence')?.name).not.toBe('changed');
+    const remote = seedData();
+    remote.notes = [{ ...remote.notes[0], id: 'from_jesse', title: 'Jesse added this', updatedAt: '2099-01-01T00:00:00.000Z' }];
+    S.applyRemote(remote);
+    expect(S.getView().notes.some((n) => n.id === 'from_jesse')).toBe(true);
+    S.setWriteLock(false);
+    S.addNote(S.newNote('x', { title: 'now it lands' }));
+    expect(S.getView().notes.some((n) => n.title === 'now it lands')).toBe(true);
+  });
+
+  it('lets a viewer change device-only settings (theme, sync target) but not shared ones', () => {
+    S.setWriteLock(true);
+    S.updateSettings({ theme: 'dark', driveFileId: 'abc' });
+    expect(S.getView().settings.theme).toBe('dark');
+    expect(S.getView().settings.driveFileId).toBe('abc');
+    S.updateSettings({ ownerName: 'Hacker' });
+    expect(S.getView().settings.ownerName).not.toBe('Hacker');
+  });
+
+  it('turns the old allowed-emails list into editors and drops the owner from it', () => {
+    const old = JSON.parse(JSON.stringify(seedData()));
+    delete old.settings.members;
+    old.settings.allowedEmails = ['David@Senawave.com', 'brandonlbarkey@gmail.com'];
+    const m = S.migrate(old);
+    expect((m.settings as unknown as { allowedEmails?: string[] }).allowedEmails).toBeUndefined();
+    expect(m.settings.members.map((x) => [x.email, x.role])).toEqual([['jessem@senawave.com', 'editor'], ['david@senawave.com', 'editor']]);
+  });
+
+  it('seeds Jesse as an editor', () => {
+    expect(S.getView().settings.members).toEqual([expect.objectContaining({ email: 'jessem@senawave.com', role: 'editor' })]);
+  });
+});
+
+describe('importing archives and files', () => {
+  it('merges a project archive in without replacing anything and reports what changed', () => {
+    const archive = S.exportProjectArchive('prj_fluence', false)!;
+    const edited = JSON.parse(archive.text);
+    edited.redlines[0].status = 'addressed';
+    edited.redlines[0].updatedAt = '2099-01-01T00:00:00.000Z';
+    edited.notes.push({ ...edited.notes[0], id: 'note_from_archive', title: 'from the archive' });
+    const projectsBefore = S.getView().projects.length;
+    const r = S.importJson(JSON.stringify(edited), 'replace');
+    expect(r).toMatchObject({ ok: true, archive: '26-0002', changes: { added: 1, updated: 1 } });
+    expect(S.getView().projects.length).toBe(projectsBefore);
+    expect(S.getView().notes.some((n) => n.id === 'note_from_archive')).toBe(true);
+    expect(S.getView().redlines.find((x) => x.id === edited.redlines[0].id)?.status).toBe('addressed');
+    expect(S.listBackups().some((b) => b.reason === 'before-archive-import')).toBe(true);
+  });
+
+  it('reports counts for a full-file merge and refuses a broken archive', () => {
+    const other = seedData();
+    other.notes = [...other.notes, { ...other.notes[0], id: 'brand_new_note' }];
+    expect(S.importJson(JSON.stringify(other), 'merge')).toMatchObject({ ok: true, changes: { added: 1 } });
+    expect(S.importJson(JSON.stringify({ kind: 'senawave-project-archive' }), 'merge')).toMatchObject({ ok: false });
   });
 });

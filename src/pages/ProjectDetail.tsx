@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { deleteProject, newSheet, updateProject, useAppData, addPermit, newPermit, updatePermit, deletePermit, restoreProject, restoreEntity } from '@/store/store';
+import { exportProjectArchive, deleteProject, newSheet, updateProject, useAppData, addPermit, newPermit, updatePermit, deletePermit, restoreProject, restoreEntity } from '@/store/store';
 import type { Permit, PermitAgencyType, PermitStatus, Project, Sheet } from '@/lib/types';
 import { PERMIT_STATUSES, PROJECT_STATUSES } from '@/lib/types';
 import { QC_CHECKLIST, QC_GROUPS, WORKFLOW_PHASES, WORKFLOW_STEPS, SHEET_MAX_ALONG_FT, clipExtents, sheetsForRun } from '@/data/guide';
@@ -14,6 +14,7 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { NextStep } from '@/components/NextStep';
 import { PrintsTab } from '@/components/PrintsTab';
 import { toast } from '@/components/Toast';
+import { downloadText, copyText } from '@/lib/download';
 
 type Tab = 'overview' | 'sheets' | 'workflow' | 'qc' | 'prints' | 'permits' | 'notes' | 'time';
 
@@ -109,18 +110,36 @@ export default function ProjectDetail() {
   );
 }
 
+/** Save this one project as a file: the offline way to archive it or hand it to someone to merge in. */
+function ArchiveButtons({ projectId }: { projectId: string }) {
+  const [withTime, setWithTime] = useState(false);
+  const make = () => exportProjectArchive(projectId, withTime);
+  return (
+    <>
+      <label className="row" style={{ gap: 4, fontSize: 12 }} title="Time entries are left out unless you tick this">
+        <input type="checkbox" checked={withTime} onChange={(e) => setWithTime(e.target.checked)} style={{ width: 'auto' }} /> with my time
+      </label>
+      <button className="btn sm" title="Save this project and its notes, permits, prints and redlines as one file" onClick={() => { const a = make(); if (!a) return; toast(downloadText(a.fileName, a.text) ? `Saved ${a.fileName}.` : 'This view blocks downloads. Use Copy archive instead.', 'ok'); }}>Save archive file</button>
+      <button className="btn sm ghost" onClick={() => { const a = make(); if (a) void copyText(a.text).then((ok) => toast(ok ? 'Archive copied.' : 'Clipboard blocked.', ok ? 'ok' : 'bad')); }}>Copy archive</button>
+    </>
+  );
+}
+
 function Overview({ project, onDelete }: { project: Project; onDelete: () => void }) {
   const est = project.routeLengthFt ? sheetsForRun(project.routeLengthFt) : null;
   const sheetsQc = project.sheets.filter((s) => s.qcDone).length;
   const due = daysUntil(project.dueDate);
   return (
-    <div className="grid" style={{ gridTemplateColumns: 'minmax(0, 2fr) minmax(280px, 1fr)' }}>
+    <div className="grid overview-grid">
       <Card title="Project record" subtitle="Saved as you type. These are the titleblock project-wide fields SENATITLE writes (name, location, number, engineer, PM, design/field dates).">
         <ProjectForm value={project} onChange={(patch) => updateProject(project.id, patch)} />
         <hr />
-        <div className="row between">
+        <div className="row between" style={{ flexWrap: 'wrap' }}>
           <span className="faint" style={{ fontSize: 12 }}>Created {fmtDate(project.createdAt)} · updated {fmtDate(project.updatedAt)}{project.updatedBy ? ` by ${project.updatedBy}` : ''}</span>
-          <ConfirmButton label="Delete project" confirmLabel="Yes, delete it" onConfirm={onDelete} />
+          <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+            <ArchiveButtons projectId={project.id} />
+            <ConfirmButton label="Delete project" confirmLabel="Yes, delete it" onConfirm={onDelete} />
+          </div>
         </div>
       </Card>
       <div>

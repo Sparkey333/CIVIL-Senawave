@@ -13,7 +13,7 @@ export interface DriveFileRef {
   webViewLink?: string;
 }
 
-async function driveFetch(token: string, url: string, init: RequestInit = {}): Promise<Response> {
+export async function driveFetch(token: string, url: string, init: RequestInit = {}): Promise<Response> {
   const res = await fetch(url, {
     ...init,
     headers: { Authorization: `Bearer ${token}`, ...(init.headers || {}) },

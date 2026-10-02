@@ -345,3 +345,12 @@ tr.row-done textarea, tr.row-done input { opacity: 0.6; }
 .finding-issue { margin-top: 6px; overflow-wrap: anywhere; }
 .finding-rec { margin-top: 4px; color: var(--fg-muted); overflow-wrap: anywhere; }
 .plain-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+
+/* Grid children and inputs inside rows may shrink below their content width, so cards never push the page sideways on a phone. */
+.grid > * { min-width: 0; }
+.row > input, .row > select, .row > textarea { min-width: 0; }
+.card { min-width: 0; }
+
+.overview-grid { grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); }
+@media (max-width: 800px) { .overview-grid { grid-template-columns: minmax(0, 1fr); } }
+dd, dd code { overflow-wrap: anywhere; min-width: 0; }

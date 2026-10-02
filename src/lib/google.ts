@@ -2,7 +2,35 @@
 // Loads https://accounts.google.com/gsi/client on demand. When no client id is configured the
 // app runs in offline mode and none of this is called.
 
-export const GOOGLE_CLIENT_ID: string = (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined)?.trim() || '';
+const BUILD_CLIENT_ID: string = (import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined)?.trim() || '';
+const CLIENT_ID_KEY = 'senawave-tracker:client-id';
+
+/** A Google OAuth web client id looks like 1234567890-abc123.apps.googleusercontent.com. */
+export function isValidClientId(id: string): boolean {
+  return /^\d+-[a-z0-9_]+\.apps\.googleusercontent\.com$/i.test(id.trim());
+}
+
+/** The client id from the build (VITE_GOOGLE_CLIENT_ID) or, failing that, the one pasted into the app on this device. */
+export function getGoogleClientId(): string {
+  if (BUILD_CLIENT_ID) return BUILD_CLIENT_ID;
+  try {
+    return localStorage.getItem(CLIENT_ID_KEY)?.trim() || '';
+  } catch {
+    return '';
+  }
+}
+
+/** True when the id is baked into the build and cannot be changed in the app. */
+export const clientIdFromBuild = !!BUILD_CLIENT_ID;
+
+export function setGoogleClientId(id: string) {
+  try {
+    if (id.trim()) localStorage.setItem(CLIENT_ID_KEY, id.trim());
+    else localStorage.removeItem(CLIENT_ID_KEY);
+  } catch {
+    /* ignore */
+  }
+}
 
 export const SCOPES = {
   identity: 'openid email profile',
@@ -88,13 +116,14 @@ export function storeToken(t: TokenInfo | null) {
 
 /** Request an access token for the given scopes. `silent` tries without a consent popup first. */
 export async function requestToken(scope: string, opts: { silent?: boolean; hint?: string } = {}): Promise<TokenInfo> {
-  if (!GOOGLE_CLIENT_ID) throw new Error('No Google client id configured (VITE_GOOGLE_CLIENT_ID).');
+  const clientId = getGoogleClientId();
+  if (!clientId) throw new Error('No Google client id yet. Paste one on the sign-in page or in Settings.');
   await loadGsi();
   const oauth2 = window.google?.accounts?.oauth2;
   if (!oauth2) throw new Error('Google Identity Services did not initialise.');
   return new Promise((resolve, reject) => {
     const client = oauth2.initTokenClient({
-      client_id: GOOGLE_CLIENT_ID,
+      client_id: clientId,
       scope,
       callback: (resp) => {
         if (resp.error || !resp.access_token) {

@@ -1,6 +1,8 @@
 import { useSyncExternalStore } from 'react';
 import type { ActivityEntry, ActivityKind, AppData, EntityKind, Note, Permit, PrintAnalysis, PrintSet, Project, Redline, Settings, Sheet, TeamMember, TimeEntry } from '@/lib/types';
-import { PROJECT_STATUSES, PERMIT_STATUSES, PRINT_STATUSES } from '@/lib/types';
+import { PROJECT_STATUSES, PERMIT_STATUSES, PRINT_STATUSES, PRIVATE_SETTING_KEYS } from '@/lib/types';
+import { archiveFileName, buildProjectArchive, diffCounts, isProjectArchive, mergeArchive, validateArchive, type ChangeCounts } from '@/lib/archive';
+import { normalizeMembers } from '@/lib/roles';
 import { WORKFLOW_STEPS, QC_CHECKLIST } from '@/data/guide';
 import { DATA_VERSION } from '@/lib/types';
 import { nowIso, uid } from '@/lib/ids';
@@ -96,6 +98,12 @@ export function migrate(input: unknown): AppData {
     updatedAt: typeof data.updatedAt === 'string' ? data.updatedAt : seed.updatedAt,
     version: DATA_VERSION,
   };
+  // Older data listed allowed sign-in emails; they become editors. The list is cleaned up and the owner removed from it.
+  const legacy = asArray<string>((data.settings as { allowedEmails?: unknown } | undefined)?.allowedEmails);
+  const members = [...asArray<Settings['members'][number]>(merged.settings.members)];
+  for (const email of legacy) if (typeof email === 'string' && !members.some((m) => m.email.toLowerCase() === email.trim().toLowerCase())) members.push({ email, name: '', role: 'editor', addedAt: merged.updatedAt });
+  merged.settings = { ...merged.settings, members: normalizeMembers(members, merged.settings.ownerEmail) };
+  delete (merged.settings as { allowedEmails?: unknown }).allowedEmails;
   // Team members from the seed that are new since the data was saved are added, never overwritten.
   const haveIds = new Set(merged.team.map((t) => t.id));
   for (const t of seed.team) if (!haveIds.has(t.id)) merged.team.push(t);
@@ -258,7 +266,27 @@ export function getView(): AppData {
   return view;
 }
 
+// A viewer can read and pull but not change anything. Edits made on this device are refused in one place,
+// here; pulling someone else's changes in (touch: false) is still allowed.
+let writeLocked = false;
+let lastLockToast = 0;
+
+export function setWriteLock(locked: boolean) {
+  writeLocked = locked;
+}
+
+export function isWriteLocked(): boolean {
+  return writeLocked;
+}
+
 export function setState(next: AppData, opts: { touch?: boolean } = {}) {
+  if (writeLocked && opts.touch !== false) {
+    if (Date.now() - lastLockToast > 3000) {
+      lastLockToast = Date.now();
+      toast('You have view-only access, so this change was not saved. Ask an admin for editor access.', 'bad');
+    }
+    return;
+  }
   state = opts.touch === false ? next : { ...next, updatedAt: nowIso() };
   view = project(state);
   persist();
@@ -680,6 +708,12 @@ export function deleteTeamMember(id: string) {
 // ---------- settings / scratch ----------
 
 export function updateSettings(patch: Partial<Settings>) {
+  // Settings that never leave this device (theme, sync target...) can be changed even with view-only access.
+  const privateOnly = Object.keys(patch).every((k) => (PRIVATE_SETTING_KEYS as readonly string[]).includes(k));
+  if (writeLocked && privateOnly) {
+    setState({ ...state, settings: { ...state.settings, ...patch } }, { touch: false });
+    return;
+  }
   update((d) => ({ ...d, settings: { ...d.settings, ...patch } }));
 }
 
@@ -694,18 +728,51 @@ export function exportJson(): string {
   return JSON.stringify(state, null, 2);
 }
 
-export function importJson(text: string, mode: 'replace' | 'merge'): { ok: boolean; error?: string } {
+export interface ImportResult {
+  ok: boolean;
+  error?: string;
+  /** Present for merges: how many rows were added and how many changed. */
+  changes?: ChangeCounts;
+  /** Present when the file was a single-project archive. */
+  archive?: string;
+}
+
+export function importJson(text: string, mode: 'replace' | 'merge'): ImportResult {
   try {
     const parsed = JSON.parse(text) as unknown;
+    // A project archive is always merged in: it can add or update that project, never replace your data.
+    if (isProjectArchive(parsed)) {
+      const err = validateArchive(parsed);
+      if (err) return { ok: false, error: err };
+      const merged = mergeArchive(state, parsed);
+      const changes = diffCounts(state, merged);
+      if (changes.added + changes.updated > 0) {
+        snapshot('before-archive-import');
+        setState(merged);
+      }
+      return { ok: true, changes, archive: parsed.project.number || parsed.project.name };
+    }
     const err = validateAppData(parsed);
     if (err) return { ok: false, error: err };
     const incoming = migrate(parsed);
-    if (mode === 'replace') snapshot('before-import-replace');
-    setState(mode === 'replace' ? incoming : mergeData(state, incoming), { touch: false });
-    return { ok: true };
+    if (mode === 'replace') {
+      snapshot('before-import-replace');
+      setState(incoming, { touch: false });
+      return { ok: true };
+    }
+    const merged = mergeData(state, incoming);
+    const changes = diffCounts(state, merged);
+    setState(merged, { touch: changes.added + changes.updated === 0 });
+    return { ok: true, changes };
   } catch (err) {
     return { ok: false, error: (err as Error).message };
   }
+}
+
+/** One project as a file (see lib/archive). Returns null when the project does not exist. */
+export function exportProjectArchive(projectId: string, includeTime: boolean): { text: string; fileName: string } | null {
+  const a = buildProjectArchive(state, projectId, { by: actor || 'me', includeTime });
+  return a ? { text: JSON.stringify(a, null, 2), fileName: archiveFileName(a) } : null;
 }
 
 export function applyRemote(remote: unknown) {

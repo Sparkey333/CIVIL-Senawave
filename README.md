@@ -24,7 +24,7 @@ tracking, one 450 KB bundle.
 | **Files (Drive)** | The shared Senawave *Design* folder (Templates + Projects, owned by Jesse) read-only: project folder grouped into drawing / xrefs / imagery / GIS / docs / scripts, changes since your last check, and "these files say step X is done" suggestions for the workflow. Ships with a snapshot taken 1 Oct 2026 so it works before Google sign-in. |
 | **Prints & reviews** | A tab on every project. Log each print (PDF name, Drive link), the reviewer's marked-up PDF, and every redline as one line (sheet, fix or check, status, what was done). Each print also holds an AI analysis: what changed since the last print and notes with recommendations, each one tick-able or turnable into a redline. Fluence ships with its first two prints, the 13 redlines from the 2 Oct review and an analysis. The app does not call an AI itself: "Copy prompt" builds the request and "Paste an analysis" reads the JSON answer back. |
 | **Senawave inbox** | Read-only Gmail limited to @senawave.com threads. File any message as a meeting note, decision or action; likely tasks are pulled out of the text as one-click actions. |
-| **Settings** | Google sign-in, connections (read-only Drive for the Design folder, read-only Gmail), owner and allowed emails, hourly rate, theme, Drive sync (folder, scope, shared file id, auto-sync, whether the time log goes in the file), JSON export / import (merge or replace), local backups with restore, delete sample data, reset. Rate, theme and this device's sync settings never leave the browser. |
+| **Settings** | Google sign-in, connections (read-only Drive for the Design folder, read-only Gmail), Google client id (paste it in, no rebuild), **People and access** (admin / editor / viewer, share the Drive file with Jesse from the list, copy an invite), hourly rate, theme, Drive sync (folder, scope, shared file id, auto-sync, whether the time log goes in the file), **Archive and update** (backup file, import merge or replace, per-project archive, local backups with restore), delete sample data, reset. Rate, theme and this device's sync settings never leave the browser. |
 
 The sample project (`26-0001 SAMPLE — Brigham City north corridor`) is seeded so nothing is empty on first
 open. Delete it from Settings once real work is in.
@@ -59,26 +59,67 @@ account's My Drive and merges record-by-record (newest wins) on every sync.
 4. **APIs & Services → Credentials → Create credentials → OAuth client ID → Web application**.
    Authorized JavaScript origins: `http://localhost:5173`, `http://localhost:4173`, and the URL you host at
    (for GitHub Pages: `https://<user>.github.io`). No redirect URI is needed for the token flow.
-5. Copy the client id into `.env.local`:
+5. Give the client id to the app. Easiest: open the app, and on the sign-in page (or Settings → Account) paste it
+   into **Google client id**. It is saved on that device, no rebuild. Or bake it into a build with
+   `.env.local`:
    ```
    VITE_GOOGLE_CLIENT_ID=1234567890-abc.apps.googleusercontent.com
    ```
-   then `npm run dev` / `npm run build`.
+   then `npm run dev` / `npm run build` (a build-time id wins over a pasted one).
 6. Sign in → Settings → **Sync now**. The folder *Senawave Tracker* and the JSON file are created in your
    Drive. Turn on auto-sync if you want edits pushed 20 s after you stop typing.
 
-### Sharing with David and Jesse
+### Online and offline
 
-Two options, both without a server:
+| | Offline | Online (Google) |
+|---|---|---|
+| Who | Whoever has the browser. They are the admin of what is stored on that device. | The owner (admin) and the people on the list in Settings → People and access. |
+| Where the data lives | This browser only. | This browser plus one data file in the owner's Google Drive. |
+| Archive and update | Save a backup file, import a file (merge or replace), save one project as an archive file, three rolling local backups. | All of the offline tools, plus Sync (pull, merge, push). |
 
-- **Simplest (solo, multi-device):** keep scope `drive.file`. Each device signs in as you and syncs the same file.
-- **Team file:** share `senawave-tracker.json` in Drive with David and Jesse (editor). They open the tool,
-  sign in with their Google account (added as test users, and to Settings → *Also allowed*), set scope to
-  `drive` in Settings, paste the file's share link into *Sync file id or share link*, and sync. Edits merge
-  per record, newest wins; two people editing the same field within one sync window is last-writer-wins.
-  Before sharing, set *Time log in the Drive file* to **Kept private** so your hours stay on your own
-  devices; your hourly rate never goes into the file either way. Deletes sync as hidden markers, so a
-  project removed on one side disappears on the other instead of coming back.
+You can switch between them at any time. Offline mode never needs a client id, an account or a network.
+
+### Roles
+
+The owner (the Google account in Settings → Owner) is always an **admin**. Everyone else is added under
+**Settings → People and access** with one of three roles:
+
+- **Admin:** everything, including the people list, resetting data and replace-imports. Gets edit access to the Drive file.
+- **Editor:** adds and changes projects, prints, redlines, notes and time. Gets edit access to the Drive file.
+- **Viewer:** read only. The app refuses every edit on their device and their Sync button only pulls. They get view-only
+  access to the Drive file, which **Google** enforces, so they cannot change it even from another tool.
+
+The roles are enforced in the app; the Drive file's own sharing is the real lock. Anyone with edit access to the file can
+change the people list inside it, so give edit access only to people you trust.
+
+### Sharing with Jesse (or anyone)
+
+1. Sign in with Google (owner account) and press **Sync now** once. That creates the data file in your Drive.
+2. Settings → **People and access**. Jesse (jessem@senawave.com) is already listed as an editor. Press **Share Drive
+   file** on his row (or add anyone else with **Add person**, which can share the file in the same step and have Google
+   email the invite).
+3. Add Jesse's email as a **test user** on the OAuth consent screen (step 3 above) while the app is in Testing.
+4. Press **Copy invite message** and send it to him. It holds a link with `?join=<file id>`: when he opens it and signs in
+   with Google, his device points at your data file with the full Drive scope (needed to open a file someone else owns),
+   and he presses Sync. His email must be on the list or the sign-in is refused.
+
+Edits merge per record, newest wins; two people editing the same field within one sync window is last-writer-wins.
+Before sharing, set *Time log in the Drive file* to **Kept private** if you do not want your hours in the shared file; your
+hourly rate never goes into the file either way. Deletes sync as hidden markers, so a project removed on one side
+disappears on the other instead of coming back.
+
+### Offline sharing, archive and update
+
+No Google needed to hand work to someone or to keep a copy:
+
+- **Project archive:** open a project's Overview → **Save archive file** (or **Copy archive**). The file holds the project
+  and its notes, permits, prints and redlines; your time entries only if you tick *with my time*; never your rate,
+  settings or the people list.
+- **Update:** Settings → Archive and update → choose a file. A project archive or a full backup is **merged**: both
+  sides are kept, the newest edit on each row wins, and a message says how many rows were added and updated. *Replace*
+  (admin only) swaps everything and backs the old data up first.
+- **Local backups:** one a day and before every import-replace, archive import, reset or restore; the three newest are
+  kept in the browser and can be restored from Settings.
 
 When this outgrows a JSON file (more than three people, or you want live updates), the storage layer is
 isolated in `src/store/store.ts` + `src/lib/sync.ts`; swapping in Firestore or a small API is the intended

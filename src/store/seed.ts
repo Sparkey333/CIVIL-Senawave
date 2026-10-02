@@ -24,7 +24,7 @@ export function defaultSettings(): Settings {
   return {
     ownerName: 'Brandon Barkey',
     ownerEmail: 'brandonlbarkey@gmail.com',
-    allowedEmails: [],
+    members: [{ email: 'jessem@senawave.com', name: 'Jesse Montgomery', role: 'editor', addedAt: T0 }],
     hourlyRate: null,
     driveFileId: '',
     driveFolderName: 'Senawave Tracker',

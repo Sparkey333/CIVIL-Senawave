@@ -26,7 +26,7 @@ function scopeFor(): string {
  * their copy is pulled and merged first, so a concurrent edit is never overwritten blind.
  * Creates the folder and file on first use when no shared file id is configured.
  */
-export async function syncWithDrive(getToken: (scope: string) => Promise<string>): Promise<SyncResult> {
+export async function syncWithDrive(getToken: (scope: string) => Promise<string>, opts: { pullOnly?: boolean } = {}): Promise<SyncResult> {
   const settings = getState().settings;
   const token = await getToken(scopeFor());
 
@@ -34,6 +34,7 @@ export async function syncWithDrive(getToken: (scope: string) => Promise<string>
   if (settings.driveFileId) {
     file = await getFileMeta(token, settings.driveFileId);
   } else {
+    if (opts.pullOnly) throw new Error('You have view-only access, so this device cannot create the Drive file. Open the link an admin sent you, or paste the file link in Settings.');
     const folder = await ensureFolder(token, settings.driveFolderName || 'Senawave Tracker');
     file = await findSyncFile(token, folder.id);
     if (!file) {
@@ -51,6 +52,7 @@ export async function syncWithDrive(getToken: (scope: string) => Promise<string>
     const remote = await readSyncFile(token, file.id);
     applyRemote(remote);
     const latest = await getFileMeta(token, file.id);
+    if (opts.pullOnly) return { file: latest, pulled: true, pushed: false, retries: 0 };
     if (latest.modifiedTime === seen || retries >= 3) {
       const updated = await writeSyncFile(token, file.id, stripForSync(getState()));
       lastSyncedAt = new Date().toISOString();

@@ -21,7 +21,9 @@ AppData
 ├─ permits[]    Permit { projectId, agency, agencyName, type, status, permitNo, submittedOn, dueOn, notes }
 ├─ timeEntries[] TimeEntry { projectId?, date, hours, description, billable, invoiced }
 ├─ team[]       TeamMember { name, role, org, email, phone, responsibilities, notes, links[], verified }
-├─ settings     Settings { ownerName, ownerEmail, allowedEmails[], quickLinks[]            ← shared
+├─ prints[]     PrintSet { projectId, label, issuedOn, fileUrl, status, review file fields, analysis? }
+├─ redlines[]   Redline { projectId, printId, sheet, kind fix|check, text, status, response }
+├─ settings     Settings { ownerName, ownerEmail, members[] {email, name, role}, quickLinks[]   ← shared
 │                          hourlyRate, theme, autoSync, driveFileId, driveFolderName,
 │                          driveScope, syncTimeEntries }                                 ← device-only
 ├─ scratch{}    free-text / checkbox state keyed by name (gusto, agencies, setup:bc-*, …)
@@ -45,10 +47,31 @@ an upgrade; bump `DATA_VERSION` when the shape changes.
 ## Auth (`src/lib/auth.tsx`, `src/lib/google.ts`)
 
 Google Identity Services token client, loaded on demand from `accounts.google.com/gsi/client`. One
-token covers identity (`openid email profile`) and Drive (`drive.file` or `drive`). Profile comes from
-the userinfo endpoint. Access is gated client-side by the owner email + allowed list in settings — this
-is a convenience gate for an internal tool, not a security boundary (the data is in each user's own
-Drive/browser anyway). Without a client id the app runs in offline mode with a local user.
+token covers identity (`openid email profile`) and Drive (`drive.file` or `drive`). The OAuth client id comes
+from the build (`VITE_GOOGLE_CLIENT_ID`) or, if none, from a value pasted into the app and kept in this
+device's localStorage (`getGoogleClientId` in `google.ts`), so no rebuild is needed. Without a client id the
+app runs in offline mode.
+
+**Roles** (`src/lib/roles.ts`). `roleFor(settings, user)` gives `admin` (owner, or a listed admin), `editor`,
+`viewer`, or `null` (not allowed: sign-in is refused, or a signed-in person is sent back to sign-in when removed
+from the list). Offline mode is admin of the local data. A viewer sets a write lock in the store
+(`setWriteLock`): `setState` refuses every edit made on this device with one message, while pulling other
+people's changes (`touch: false`) and changing device-only settings still work. Their Sync is pull-only
+(`syncWithDrive(..., { pullOnly })`).
+
+This is an app-level guard. The real access control is the Drive file's own sharing
+(`src/lib/drivePerms.ts`: share as writer for admin/editor and reader for viewer, list, change and remove
+permissions), which Google enforces. Anyone with edit access to the file can edit the members list stored in it.
+
+**Invite links.** `?join=<Drive file id>` is stashed in sessionStorage; after Google sign-in the app sets the
+sync file id and switches the scope to `drive` (a file owned by someone else cannot be opened with `drive.file`).
+
+## Archive and update (`src/lib/archive.ts`)
+
+A project archive (`kind: senawave-project-archive`) is one project plus its notes, permits, prints, redlines and,
+optionally, time entries. It never carries settings, the rate or the members list. Importing it merges by id,
+newest `updatedAt` wins, and reports how many rows were added and updated (`diffCounts`). Full-file imports
+use the same merge (or replace, admin only, after a snapshot).
 
 ## Sync (`src/lib/drive.ts`, `src/lib/sync.ts`, `src/lib/merge.ts`)
 

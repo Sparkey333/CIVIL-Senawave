@@ -2,7 +2,10 @@ import { useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Layout } from './Layout';
 import { useAuth } from '@/lib/auth';
-import { useAppData } from '@/store/store';
+import { updateSettings, useAppData } from '@/store/store';
+import { parseDriveId } from '@/lib/drive';
+import { toast } from '@/components/Toast';
+import { setProvisional } from '@/lib/provisional';
 import SignIn from '@/pages/SignIn';
 import Dashboard from '@/pages/Dashboard';
 import Projects from '@/pages/Projects';
@@ -17,6 +20,8 @@ import Files from '@/pages/Files';
 import Inbox from '@/pages/Inbox';
 import Daily from '@/pages/Daily';
 
+const JOIN_KEY = 'senawave-tracker:join';
+
 export default function App() {
   const { user } = useAuth();
   const data = useAppData();
@@ -26,6 +31,36 @@ export default function App() {
     if (t === 'system') document.documentElement.removeAttribute('data-theme');
     else document.documentElement.setAttribute('data-theme', t);
   }, [data.settings.theme]);
+
+  // An invite link (?join=<Drive file id>) points this device at the shared data file once the person has signed in.
+  useEffect(() => {
+    try {
+      const join = new URLSearchParams(window.location.search).get('join');
+      if (join) {
+        sessionStorage.setItem(JOIN_KEY, parseDriveId(join));
+        setProvisional();
+        const url = new URL(window.location.href);
+        url.searchParams.delete('join');
+        window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user?.mode !== 'google') return;
+    try {
+      const id = sessionStorage.getItem(JOIN_KEY);
+      if (!id) return;
+      sessionStorage.removeItem(JOIN_KEY);
+      // A file someone else owns can only be opened with the full Drive scope.
+      updateSettings({ driveFileId: id, driveScope: 'drive' });
+      toast('Linked to the shared tracker file. Press \"Update from Drive\" (top right) and allow Drive access when Google asks. Until then you have view-only access.');
+    } catch {
+      /* ignore */
+    }
+  }, [user]);
 
   if (!user) return <SignIn />;
 

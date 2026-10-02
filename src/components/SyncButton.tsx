@@ -6,7 +6,7 @@ import { getState, useAppData } from '@/store/store';
 import { toast } from './Toast';
 
 export function SyncButton() {
-  const { user, getToken, googleConfigured } = useAuth();
+  const { user, getToken, googleConfigured, canEdit, finishJoin } = useAuth();
   const data = useAppData();
   const [busy, setBusy] = useState(false);
   const [last, setLast] = useState<string | null>(null);
@@ -17,10 +17,11 @@ export function SyncButton() {
     if (!user || user.mode !== 'google') return;
     setBusy(true);
     try {
-      const r = await syncWithDrive(getToken);
+      const r = await syncWithDrive(getToken, { pullOnly: !canEdit });
+      finishJoin();
       lastPushedAt.current = getState().updatedAt;
       setLast(new Date().toLocaleTimeString());
-      if (!quiet) toast(r.pulled ? (r.retries ? `Synced with Google Drive (merged ${r.retries} concurrent edit${r.retries > 1 ? 's' : ''}).` : 'Synced with Google Drive.') : 'Created the sync file in Google Drive.');
+      if (!quiet) toast(!r.pushed ? 'Updated from Google Drive (view only).' : r.pulled ? (r.retries ? `Synced with Google Drive (merged ${r.retries} concurrent edit${r.retries > 1 ? 's' : ''}).` : 'Synced with Google Drive.') : 'Created the sync file in Google Drive.');
     } catch (err) {
       toast(`Drive sync failed: ${(err as Error).message}`, 'bad');
     } finally {
@@ -30,7 +31,7 @@ export function SyncButton() {
 
   // Debounced auto-sync when enabled: push 20 s after the last edit.
   useEffect(() => {
-    if (!data.settings.autoSync || user?.mode !== 'google') return;
+    if (!data.settings.autoSync || user?.mode !== 'google' || !canEdit) return;
     if (data.updatedAt === lastPushedAt.current) return;
     if (timer.current) window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => void run(true), 20_000);
@@ -49,8 +50,8 @@ export function SyncButton() {
     );
   }
   return (
-    <button className="btn sm" onClick={() => void run()} disabled={busy} title="Pull + merge + push senawave-tracker.json in Google Drive">
-      {busy ? '⟳ Syncing…' : `⟳ Sync Drive${last ? ` · ${last}` : ''}`}
+    <button className="btn sm" onClick={() => void run()} disabled={busy} title={canEdit ? 'Pull + merge + push senawave-tracker.json in Google Drive' : 'Pull the latest from Google Drive (view only)'}>
+      {busy ? '⟳ Syncing…' : `⟳ ${canEdit ? 'Sync Drive' : 'Update from Drive'}${last ? ` · ${last}` : ''}`}
     </button>
   );
 }
