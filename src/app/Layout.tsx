@@ -18,6 +18,7 @@ const NAV2 = [
   { to: '/reference', label: 'Plan Production Guide', ico: '§' },
   { to: '/team', label: 'Team & company', ico: '⚇' },
   { to: '/tools', label: 'Tools & integrations', ico: '⚙' },
+  { to: '/connections', label: 'Connections', ico: '⇄' },
   { to: '/settings', label: 'Settings', ico: '≡' },
 ];
 
@@ -32,11 +33,12 @@ const TITLES: Record<string, string> = {
   '/reference': 'Plan Production Guide — Rev 5',
   '/team': 'Team & company',
   '/tools': 'Tools & integrations',
+  '/connections': 'Connections',
   '/settings': 'Settings',
 };
 
 export function Layout() {
-  const { user, signOut, role } = useAuth();
+  const { user, signOut, role, claude } = useAuth();
   const data = useAppData();
   const loc = useLocation();
   const openActions = data.notes.filter((n) => n.type === 'action' && !n.done).length;
@@ -81,12 +83,20 @@ export function Layout() {
             <span className="avatar">{user?.picture ? <img src={user.picture} alt="" referrerPolicy="no-referrer" /> : initials(user?.name || '?')}</span>
             <span style={{ minWidth: 0 }}>
               <div style={{ fontWeight: 600, color: '#e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.name}</div>
-              <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.mode === 'google' ? `${roleLabel(role)} · ${user.email}` : 'Offline mode'}</div>
+              <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {user?.mode === 'claude' ? `${roleLabel(role, 'claude')}${claude?.isOwner ? ' · owner' : ''} · claude.ai` : user?.mode === 'google' ? `${roleLabel(role)} · ${user.email}` : 'Offline mode'}
+              </div>
             </span>
           </div>
-          <button className="btn sm ghost" style={{ color: '#94a3b8' }} onClick={signOut}>
-            Sign out
-          </button>
+          {user?.mode === 'claude' ? (
+            <NavLink className="btn sm ghost" style={{ color: '#94a3b8' }} to="/connections">
+              Connections
+            </NavLink>
+          ) : (
+            <button className="btn sm ghost" style={{ color: '#94a3b8' }} onClick={signOut}>
+              Sign out
+            </button>
+          )}
         </div>
       </aside>
       <div className="main">

@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { updateSettings, useAppData } from '@/store/store';
 import { useAuth } from '@/lib/auth';
 import { SCOPES } from '@/lib/google';
-import { emailKey, normalizeMembers } from '@/lib/roles';
+import { PERMANENT_ADMINS, emailKey, normalizeMembers } from '@/lib/roles';
+import { Link } from 'react-router-dom';
 import { inviteText, listPermissions, matchesRole, permissionFor, removePermission, shareFile, updatePermissionRole, type DrivePermission } from '@/lib/drivePerms';
 import { copyText } from '@/lib/download';
 import { ROLES, type Member, type Role } from '@/lib/types';
@@ -13,6 +14,38 @@ const ROLE_KIND: Record<Role, '' | 'ok' | 'info' | 'accent'> = { admin: 'accent'
 
 /** Who can use this tracker and what they may do. Admins manage it; everyone else sees the list. */
 export function PeopleCard() {
+  const { user } = useAuth();
+  return user?.mode === 'claude' ? <SharedPeopleCard /> : <GooglePeopleCard />;
+}
+
+/** claude.ai mode: claude.ai's Share menu decides who gets in; this explains how its levels map to the app. */
+function SharedPeopleCard() {
+  const { role, claude } = useAuth();
+  return (
+    <Card title="People and access" subtitle="In the shared tracker, claude.ai's Share menu decides who can open it and who can change it.">
+      <div className="row" style={{ marginBottom: 10 }}>
+        <span>You are</span>
+        <Badge kind={role ? ROLE_KIND[role] : 'warn'}>{role ?? 'no access'}</Badge>
+        {claude?.isOwner && <Badge kind="accent">owner</Badge>}
+      </div>
+      <div className="tbl-wrap">
+        <table className="tbl compact">
+          <thead><tr><th>In claude.ai's Share menu</th><th>In the tracker</th></tr></thead>
+          <tbody>
+            <tr><td>Owner (the person who published it)</td><td><Badge kind="accent">admin</Badge></td></tr>
+            <tr><td>{PERMANENT_ADMINS.join(', ')}</td><td><Badge kind="accent">admin</Badge> <span className="faint">always</span></td></tr>
+            <tr><td>Editor (for people outside your organization: only while there is no public link)</td><td><Badge kind="ok">editor</Badge></td></tr>
+            <tr><td>Viewer, Commenter, or anyone claude.ai will not let save</td><td><Badge kind="info">viewer</Badge></td></tr>
+          </tbody>
+        </table>
+      </div>
+      {claude?.isOwner && <p style={{ marginBottom: 0 }}><Link to="/connections">Connections → Share with Jesse</Link> has the steps and a message to send him.</p>}
+    </Card>
+  );
+}
+
+/** Google mode: the people list in the data file decides who can sign in, and the Drive file's sharing enforces it. */
+function GooglePeopleCard() {
   const data = useAppData();
   const s = data.settings;
   const { user, isAdmin, role, getToken } = useAuth();
@@ -71,8 +104,9 @@ export function PeopleCard() {
     return inviteText({ appUrl: window.location.origin, fileUrl: `https://drive.google.com/file/d/${fileId}/view`, fromName: s.ownerName || 'Brandon', role: 'editor', joinUrl });
   };
 
-  const rows: { member: Member | null; email: string; name: string; role: Role }[] = [
+  const rows: { member: Member | null; email: string; name: string; role: Role; permanent?: boolean }[] = [
     { member: null, email: s.ownerEmail, name: s.ownerName, role: 'admin' },
+    ...PERMANENT_ADMINS.filter((e) => e !== emailKey(s.ownerEmail || '')).map((e) => ({ member: null, email: e, name: '', role: 'admin' as Role, permanent: true })),
     ...s.members.map((m) => ({ member: m, email: m.email, name: m.name, role: m.role })),
   ];
 
@@ -92,11 +126,11 @@ export function PeopleCard() {
         <table className="tbl compact">
           <thead><tr><th>Person</th><th>Role</th><th>Drive file</th><th /></tr></thead>
           <tbody>
-            {rows.map(({ member, email, name, role: r }) => {
+            {rows.map(({ member, email, name, role: r, permanent }) => {
               const perm = perms ? permissionFor(perms, email) : undefined;
               return (
                 <tr key={email}>
-                  <td><div>{name || email}</div><div className="faint" style={{ fontSize: 12 }}>{name ? email : ''}{!member ? ' · owner' : ''}</div></td>
+                  <td><div>{name || email}</div><div className="faint" style={{ fontSize: 12 }}>{name ? email : ''}{permanent ? ' · permanent admin' : !member ? ' · owner' : ''}</div></td>
                   <td>
                     {member && isAdmin ? (
                       <select value={r} style={{ minWidth: 104 }} onChange={(e) => setMembers(s.members.map((m) => (m.email === email ? { ...m, role: e.target.value as Role } : m)))} aria-label={`Role for ${email}`}>
@@ -105,7 +139,7 @@ export function PeopleCard() {
                     ) : <Badge kind={ROLE_KIND[r]}>{r}</Badge>}
                   </td>
                   <td>
-                    {!member ? <Badge kind="ok">owns the file</Badge> : perms === null ? <span className="faint">{canDrive ? 'not checked' : '—'}</span> : !perm ? <Badge kind="warn">not shared</Badge> : matchesRole(perm, r) ? <Badge kind="ok">shared · {perm.role === 'writer' ? 'can edit' : 'can view'}</Badge> : <Badge kind="warn">{perm.role} (role differs)</Badge>}
+                    {permanent ? (perm ? <Badge kind="ok">shared · {perm.role === 'writer' || perm.role === 'owner' ? 'can edit' : 'can view'}</Badge> : <span className="faint">—</span>) : !member ? <Badge kind="ok">owns the file</Badge> : perms === null ? <span className="faint">{canDrive ? 'not checked' : '—'}</span> : !perm ? <Badge kind="warn">not shared</Badge> : matchesRole(perm, r) ? <Badge kind="ok">shared · {perm.role === 'writer' ? 'can edit' : 'can view'}</Badge> : <Badge kind="warn">{perm.role} (role differs)</Badge>}
                   </td>
                   <td>
                     {member && isAdmin && (

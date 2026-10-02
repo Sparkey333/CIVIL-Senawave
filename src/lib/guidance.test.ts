@@ -10,7 +10,7 @@ describe('nextStepFor', () => {
   });
 
   it('points at the first unchecked workflow step in guide order', () => {
-    const p = fluenceProject();
+    const p = { ...fluenceProject(), workflow: { 'start-new': true, 'gis-index': true } as Record<string, boolean> };
     const s = nextStepFor(p);
     expect(s.kind).toBe('workflow');
     expect(s.stepId).toBe(WORKFLOW_STEPS.find((w) => !p.workflow[w.id])!.id);
@@ -51,12 +51,34 @@ describe('nextStepFor', () => {
 });
 
 describe('setupChecklist', () => {
-  it('reflects the state it is given', () => {
+  const base = { isOwner: true, googleConfigured: false, driveSnapshot: false, backupAt: null, sharedWithTeam: false };
+
+  it('claude.ai mode: shared store, connectors, sharing with Jesse (owner only), rate and a backup', () => {
     const d = seedData();
-    const items = setupChecklist(d, { googleSignedIn: false, googleConfigured: false, driveSnapshot: false });
-    expect(items.find((i) => i.id === 'project')?.done).toBe(true); // Fluence is seeded
-    expect(items.find((i) => i.id === 'google')?.done).toBe(false);
+    const items = setupChecklist(d, { ...base, mode: 'claude', cloud: { state: 'connecting', others: 0 }, connectors: { drive: { ready: false, missing: false }, gmail: { ready: false, missing: true } } });
+    expect(items.map((i) => i.id)).toEqual(['shared', 'drive', 'design', 'gmail', 'share', 'rate', 'backup']);
+    expect(items.find((i) => i.id === 'gmail')?.hint).toMatch(/Connectors/);
+    const later = setupChecklist(
+      { ...d, settings: { ...d.settings, hourlyRate: 90 } },
+      { ...base, mode: 'claude', cloud: { state: 'live', others: 1 }, connectors: { drive: { ready: true, missing: false }, gmail: { ready: true, missing: false } }, driveSnapshot: true, backupAt: new Date().toISOString() },
+    );
+    expect(later.every((i) => i.done)).toBe(true);
+    // Jesse sees no "share" step.
+    expect(setupChecklist(d, { ...base, isOwner: false, mode: 'claude', cloud: { state: 'live', others: 0 } }).some((i) => i.id === 'share')).toBe(false);
+  });
+
+  it('offline mode asks for a backup this week and the rate; a week-old backup is due again', () => {
+    const d = seedData();
+    const now = Date.parse('2026-10-10T12:00:00Z');
+    const items = setupChecklist(d, { ...base, mode: 'offline', backupAt: '2026-10-01T12:00:00Z', now });
+    expect(items.map((i) => [i.id, i.done])).toEqual([['backup', false], ['rate', false]]);
+    expect(setupChecklist(d, { ...base, mode: 'offline', backupAt: '2026-10-09T12:00:00Z', now })[0].done).toBe(true);
+  });
+
+  it('google mode follows the Drive file, the folder and Gmail switches', () => {
+    const d = seedData();
+    d.settings.driveFileId = 'abc';
     d.settings.hourlyRate = 75;
-    expect(setupChecklist(d, { googleSignedIn: true, googleConfigured: true, driveSnapshot: true }).filter((i) => !i.done).map((i) => i.id)).toEqual(['gmail', 'sync']);
+    expect(setupChecklist(d, { ...base, mode: 'google', driveSnapshot: true }).filter((i) => !i.done).map((i) => i.id)).toEqual(['gmail']);
   });
 });

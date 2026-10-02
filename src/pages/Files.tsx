@@ -7,6 +7,7 @@ import type { DriveNode, DriveSnapshot } from '@/lib/types';
 import { FLUENCE_DRIVE_SNAPSHOT } from '@/data/fluenceDrive';
 import { WORKFLOW_STEPS } from '@/data/guide';
 import { logActivity, updateProject, updateSettings, useAppData } from '@/store/store';
+import { driveSnapshot } from '@/lib/connectors';
 import { Badge, Callout, Card, Empty } from '@/components/ui';
 import { fmtDateTime } from '@/lib/ids';
 import { toast } from '@/components/Toast';
@@ -25,15 +26,17 @@ export default function Files() {
   const project = data.projects.find((p) => p.id === projectId) || null;
   const rootId = parseFolderId(data.settings.designFolderUrl || '');
 
+  const viaClaude = user?.mode === 'claude';
   const refresh = async () => {
-    if (!user || user.mode !== 'google') return toast('Sign in with Google to read the Design folder.', 'bad');
-    if (!data.settings.driveFilesEnabled) return toast('Turn on "Design folder (read-only Drive)" in Settings → Connections first.', 'bad');
-    if (!rootId) return toast('Paste the Design folder link in Settings → Connections.', 'bad');
+    if (!rootId) return toast('Paste the Design folder link in the box on the right first.', 'bad');
+    if (!viaClaude) {
+      if (!user || user.mode !== 'google') return toast('Open the tracker in claude.ai, or sign in with Google, to read the Design folder.', 'bad');
+      if (!data.settings.driveFilesEnabled) return toast('Turn on "Design folder (read-only Drive)" on the Connections page first, then sign in again.', 'bad');
+    }
     setBusy(true);
     setProgress(0);
     try {
-      const token = await getToken(SCOPES.driveReadonly);
-      const fresh = await snapshotFolder(token, rootId, setProgress);
+      const fresh = viaClaude ? await driveSnapshot(rootId, setProgress) : await snapshotFolder(await getToken(SCOPES.driveReadonly), rootId, setProgress);
       const prev = loadSnapshot();
       const diff = diffSnapshots(prev && prev.rootId === rootId ? prev : null, fresh);
       saveSnapshot(fresh);
@@ -84,7 +87,13 @@ export default function Files() {
             <button className="btn sm primary" onClick={() => void refresh()} disabled={busy}>{busy ? `Reading… ${progress}` : 'Refresh from Drive'}</button>
           </span>
         </div>
-        {snap.source === 'seed' && <p className="muted" style={{ fontSize: 12.5, margin: '6px 0 0' }}>To make this live: Settings → Connections → turn on the read-only Drive connection, sign in with Google, then Refresh. Until then this is what the folder held when the tool was built.</p>}
+        {snap.source === 'seed' && (
+          <p className="muted" style={{ fontSize: 12.5, margin: '6px 0 0' }}>
+            {viaClaude
+              ? 'Press "Refresh from Drive" to read the folder now with your Google Drive connector (the first time, claude.ai asks you to allow it). Until then this is what the folder held on 1 Oct.'
+              : 'To make this live: Connections → Google sign-in → turn on the Design folder switch, sign in again, then Refresh. Until then this is what the folder held on 1 Oct.'}
+          </p>
+        )}
       </Callout>
 
       {changes.length > 0 && (

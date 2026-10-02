@@ -1,7 +1,6 @@
-// Company and people background, compiled 2026-09-29 from public sources.
-// Every fact carries a source URL and a verification level. Items the research could not confirm are
-// marked as such rather than guessed — edit these entries in the Team page once you learn more.
-// Full write-up: docs/research-senawave.md
+// Company background for the team: the public facts that matter for permitting and planning work, compiled
+// 2026-09-29. Every fact carries a source URL and how firmly it was confirmed. Everyone on the shared tracker
+// sees this page, so it stays to work-relevant company facts.
 
 export type Verification = 'verified' | 'partial' | 'unverified';
 
@@ -24,20 +23,11 @@ export const COMPANY = {
   linkedin: 'https://www.linkedin.com/company/senawave-llc',
   facts: [
     { label: 'Operating entity', value: 'VAIX, Inc. dba Senawave Communications (also dba Coordinated Telecom, Inc.); holding company SENAWAVE LLC', source: 'https://apps.fcc.gov/cgb/form499/499detail.cfm?FilerNum=829516', level: 'verified' },
-    { label: 'FCC Form 499 filer / FRN', value: 'Filer 829516, FRN 0022205454 — interconnected VoIP, USF contributor, states GA/ID/OR/UT/WY', source: 'https://apps.fcc.gov/cgb/form499/499detail.cfm?FilerNum=829516', level: 'verified' },
-    { label: 'Sena Wave, LLC', value: 'Incorporated 18 Sep 2012; alt name Senawave Communications; current principal David Bradshaw (Member)', source: 'https://www.bbb.org/us/ut/salt-lake-city/profile/internet-service/sena-wave-llc-1166-22337799', level: 'partial' },
     { label: 'Roots', value: 'Company site says it was started by two network engineers in fall 2004 (VoIP); ISP/fiber build-out came later', source: 'https://www.senawave.com/about', level: 'partial' },
-    { label: 'Headquarters', value: '2075 S Pioneer Rd Ste B, Salt Lake City, UT 84104 · (801) 217-9000 · info@senawave.com (Indeed/Glassdoor list West Valley City)', source: 'https://ispreports.org/internet-service-providers/senawave-availability/', level: 'partial' },
-    { label: 'Size', value: 'Indeed: 11–50 employees; ZoomInfo: ~23 employees, ~$4.1M revenue; LinkedIn: 2–10', source: 'https://www.indeed.com/cmp/Senawave-1', level: 'partial' },
+    { label: 'Headquarters', value: '2075 S Pioneer Rd Ste B, Salt Lake City, UT 84104 · (801) 217-9000 · info@senawave.com (some listings say West Valley City)', source: 'https://ispreports.org/internet-service-providers/senawave-availability/', level: 'partial' },
     { label: 'Network', value: 'AS29844 "Sena Wave LLC"; also lists a Salt Lake City data center; UTOPIA Fiber service provider', source: 'https://bgp.tools/as/29844', level: 'partial' },
     { label: 'BEAD (Utah, Benefit-of-the-Bargain round)', value: 'Provisional award to Vaix, Inc. d.b.a. Senawave: $22,931,272, fiber, 1,935 locations', source: 'https://www.telecompetitor.com/updated-comprehensive-list-bead-benefit-of-the-bargain-provisional-awards/', level: 'verified' },
     { label: 'BEAD area (Box Elder County)', value: 'Company rep told the county commission it was selected by the state for fiber + fixed wireless to rural Box Elder County, Honeyville through Brigham City', source: 'https://citizenportal.ai/articles/9321346/', level: 'partial' },
-    { label: 'Utah Broadband Access Grant', value: 'No Senawave award found in the 2022 recipient list', source: 'https://connecting.utah.gov/broadband/utah-broadband-center-announces-2022-grant-recipients/', level: 'verified' },
-    { label: 'Utah PSC', value: 'Docket 17-2598-01 (ETC / Lifeline petition, 2017) dismissed 16 Feb 2018; no active PSC certificate found', source: 'https://psc.utah.gov/?p=31763', level: 'partial' },
-    { label: 'Indeed rating', value: '2.6 / 5 (6 reviews); job security 2.0, management 2.3, work-life balance 3.5, compensation 2.0; CEO approval 72%', source: 'https://www.indeed.com/cmp/Senawave-1', level: 'verified' },
-    { label: 'Glassdoor rating', value: '2.3 / 5 (5 reviews), 30% recommend', source: 'https://www.glassdoor.com/Reviews/SenaWave-Reviews-E1555707.htm', level: 'partial' },
-    { label: 'Trademark', value: 'USPTO "SENA WAVE" (serial 85840070, filed 2013, cancelled 2020): "SENA" in blue, "WAVE" in black, three blue wave lines', source: 'https://www.trademarkia.com/owners/Sena%20Wave%20LLC', level: 'partial' },
-    { label: 'Utah Division of Corporations record', value: 'Entity number, registered agent and officers could not be retrieved (registry blocked during research) — look up at corporations.utah.gov', level: 'unverified' },
   ] as Fact[],
   serviceArea: [
     'Wasatch Front: Orem, Lindon, Murray, Midvale, West Valley City, Centerville, Layton, Cottonwood Heights, Riverton',
@@ -59,12 +49,5 @@ export const COMPANY = {
     { name: 'Mickel Thorsen', role: 'Technical Specialist', source: 'https://www.linkedin.com/in/mickel-thorsen-715a23116/' },
   ],
   researchDate: '2026-09-29',
-  researchCaveat:
-    'Research ran from a sandbox that could not open senawave.com, utah.gov, LinkedIn, Crunchbase or Glassdoor directly; those facts come from search-engine snippets of the cited pages and should be confirmed by opening the links.',
+  sourceNote: 'Compiled from public sources on 29 Sep 2026. Some come from search-result excerpts of the cited pages; open the link before relying on one in a submittal.',
 };
-
-export const OTHER_ENTITIES = [
-  { name: 'Ansom Outdoor LLC', finding: 'No web presence, news or registration found. Appears in your working folder path ("Ansom Outdoor LLC__1 Senawave - UT Light"), so it is most likely your own or a subcontractor entity, not a Senawave company.', level: 'unverified' as Verification },
-  { name: '"UT Light" / "Utah Light"', finding: 'No company, product or project by that name found connected to Senawave or UDOT. Possibly an internal project or client nickname.', level: 'unverified' as Verification },
-  { name: 'Utah Fiber, LLC', finding: 'A Boston Omaha Broadband (Utah Broadband) subsidiary registered in Omaha, NE — unrelated to Senawave. Your "Utah Fiber - Jesse" folder is probably not this company.', level: 'partial' as Verification },
-];

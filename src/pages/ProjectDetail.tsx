@@ -5,7 +5,7 @@ import type { Permit, PermitAgencyType, PermitStatus, Project, Sheet } from '@/l
 import { PERMIT_STATUSES, PROJECT_STATUSES } from '@/lib/types';
 import { QC_CHECKLIST, QC_GROUPS, WORKFLOW_PHASES, WORKFLOW_STEPS, SHEET_MAX_ALONG_FT, clipExtents, sheetsForRun } from '@/data/guide';
 import { checkSheets, generateSheets, sheetProgress } from '@/lib/sheets';
-import { daysUntil, fmtDate, fmtFt } from '@/lib/ids';
+import { daysUntil, fmtDate, fmtFt, todayIso } from '@/lib/ids';
 import { Badge, Callout, Card, ConfirmButton, Empty, Field, KV, Progress, Tabs, useLocalTab } from '@/components/ui';
 import { ProjectForm } from '@/components/ProjectForm';
 import { NoteComposer, NoteList } from '@/components/NoteList';
@@ -14,7 +14,9 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { NextStep } from '@/components/NextStep';
 import { PrintsTab } from '@/components/PrintsTab';
 import { toast } from '@/components/Toast';
-import { downloadText, copyText } from '@/lib/download';
+import { copyText, saveFile, saveMessage } from '@/lib/download';
+import { BabySteps } from '@/components/BabySteps';
+import { projectSteps } from '@/lib/nextSteps';
 
 type Tab = 'overview' | 'sheets' | 'workflow' | 'qc' | 'prints' | 'permits' | 'notes' | 'time';
 
@@ -119,13 +121,28 @@ function ArchiveButtons({ projectId }: { projectId: string }) {
       <label className="row" style={{ gap: 4, fontSize: 12 }} title="Time entries are left out unless you tick this">
         <input type="checkbox" checked={withTime} onChange={(e) => setWithTime(e.target.checked)} style={{ width: 'auto' }} /> with my time
       </label>
-      <button className="btn sm" title="Save this project and its notes, permits, prints and redlines as one file" onClick={() => { const a = make(); if (!a) return; toast(downloadText(a.fileName, a.text) ? `Saved ${a.fileName}.` : 'This view blocks downloads. Use Copy archive instead.', 'ok'); }}>Save archive file</button>
+      <button
+        className="btn sm"
+        title="Save this project and its notes, permits, prints and redlines as one file"
+        onClick={() => {
+          const a = make();
+          if (!a) return;
+          void saveFile(a.fileName, a.text).then((outcome) => {
+            const m = saveMessage(outcome, a.fileName);
+            toast(m.text, m.ok ? 'ok' : 'bad');
+          });
+        }}
+      >
+        Save archive file
+      </button>
       <button className="btn sm ghost" onClick={() => { const a = make(); if (a) void copyText(a.text).then((ok) => toast(ok ? 'Archive copied.' : 'Clipboard blocked.', ok ? 'ok' : 'bad')); }}>Copy archive</button>
     </>
   );
 }
 
 function Overview({ project, onDelete }: { project: Project; onDelete: () => void }) {
+  const data = useAppData();
+  const steps = projectSteps(data, project, todayIso());
   const est = project.routeLengthFt ? sheetsForRun(project.routeLengthFt) : null;
   const sheetsQc = project.sheets.filter((s) => s.qcDone).length;
   const due = daysUntil(project.dueDate);
@@ -143,7 +160,10 @@ function Overview({ project, onDelete }: { project: Project; onDelete: () => voi
         </div>
       </Card>
       <div>
-        <Card title="What to do next" className="tight"><NextStep project={project} /></Card>
+        <Card title="Next steps on this project" subtitle="In order; each opens the tab where it is done." className="tight">
+          <BabySteps steps={steps} limit={5} showProject={false} />
+        </Card>
+        <Card title="Plan production (guide order)" className="tight"><NextStep project={project} /></Card>
         <Card title="At a glance">
           <KV
             rows={[

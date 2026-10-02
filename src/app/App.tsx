@@ -19,11 +19,12 @@ import TimeLog from '@/pages/TimeLog';
 import Files from '@/pages/Files';
 import Inbox from '@/pages/Inbox';
 import Daily from '@/pages/Daily';
+import Connections from '@/pages/Connections';
 
 const JOIN_KEY = 'senawave-tracker:join';
 
 export default function App() {
-  const { user } = useAuth();
+  const { user, claudeChecking } = useAuth();
   const data = useAppData();
 
   useEffect(() => {
@@ -62,6 +63,17 @@ export default function App() {
     }
   }, [user]);
 
+  if (claudeChecking) {
+    return (
+      <div className="signin">
+        <div className="card" style={{ textAlign: 'center' }} role="status" aria-live="polite">
+          <h1 style={{ margin: '0 0 6px' }}>Senawave Civil Tracker</h1>
+          <p className="muted" style={{ margin: 0 }}>Opening the shared tracker through claude.ai…</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!user) return <SignIn />;
 
   return (
@@ -79,6 +91,7 @@ export default function App() {
         <Route path="reference/:tab" element={<Reference />} />
         <Route path="team" element={<Team />} />
         <Route path="tools" element={<Tools />} />
+        <Route path="connections" element={<Connections />} />
         <Route path="settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

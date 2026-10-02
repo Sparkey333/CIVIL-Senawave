@@ -83,16 +83,71 @@ export interface SetupItem {
   hint: string;
 }
 
-/** The "get the tool working" checklist shown until everything is green. */
-export function setupChecklist(d: AppData, opts: { googleSignedIn: boolean; googleConfigured: boolean; driveSnapshot: boolean }): SetupItem[] {
-  const hasReal = d.projects.some((p) => !p.sample);
+/** Where this copy of the tracker lives, and what the setup checklist needs to know about it. */
+export interface SetupContext {
+  mode: 'claude' | 'google' | 'offline';
+  /** claude.ai mode: this person owns the shared tracker (shares it, seeds it). */
+  isOwner: boolean;
+  /** claude.ai mode: the shared store's state and how many other people have written to it. */
+  cloud?: { state: string; others: number; message?: string };
+  /** claude.ai mode: each connector is allowed and connected (ready) or not in the account at all (missing). */
+  connectors?: Partial<Record<'drive' | 'gmail' | 'calendar', { ready: boolean; missing: boolean }>>;
+  googleConfigured: boolean;
+  /** The Files page holds a live read of the Design folder (not the built-in snapshot). */
+  driveSnapshot: boolean;
+  /** When the last backup was made (file or Drive), if ever. */
+  backupAt: string | null;
+  /** The owner said they have invited the team. */
+  sharedWithTeam: boolean;
+  now?: number;
+}
+
+/** The "get the tool working" checklist for this mode, in the order to do it. Shown until everything is green. */
+export function setupChecklist(d: AppData, ctx: SetupContext): SetupItem[] {
+  const rate: SetupItem = { id: 'rate', label: 'Set your hourly rate', done: !!d.settings.hourlyRate, to: '/settings', hint: 'Settings → You and this device. Private to you; it totals the time log for invoices.' };
+  const backupFresh = !!ctx.backupAt && (ctx.now ?? Date.now()) - new Date(ctx.backupAt).getTime() < 7 * 86400000;
+
+  if (ctx.mode === 'claude') {
+    const c = ctx.cloud?.state || 'connecting';
+    const drive = ctx.connectors?.drive;
+    const gmail = ctx.connectors?.gmail;
+    const items: SetupItem[] = [
+      {
+        id: 'shared',
+        label: 'Shared tracker connected',
+        done: c === 'live' || c === 'readonly',
+        to: '/connections',
+        hint:
+          c === 'empty'
+            ? ctx.isOwner
+              ? 'Connections → "Copy this device into the shared tracker".'
+              : 'The owner has not filled the shared tracker yet.'
+            : c === 'error' || c === 'stopped'
+              ? ctx.cloud?.message || 'Reload the page.'
+              : 'Connecting… this takes a few seconds.',
+      },
+      { id: 'drive', label: 'Allow Google Drive for the tracker', done: !!drive?.ready, to: '/connections', hint: drive?.missing ? 'First add the Google Drive connector: claude.ai → Settings → Connectors.' : 'Connections → Allow. Reads the Design folder and print PDFs; writes only backups you ask for.' },
+      { id: 'design', label: 'Read the Design folder from Drive', done: ctx.driveSnapshot, to: '/files', hint: 'Files → Refresh from Drive.' },
+      { id: 'gmail', label: 'Allow Gmail (reads @senawave.com mail, never sends)', done: !!gmail?.ready, to: '/connections', hint: gmail?.missing ? 'First add the Gmail connector: claude.ai → Settings → Connectors.' : 'Connections → Allow.' },
+    ];
+    if (ctx.isOwner)
+      items.push({ id: 'share', label: 'Share the tracker with Jesse as Editor', done: (ctx.cloud?.others ?? 0) > 0 || ctx.sharedWithTeam, to: '/connections', hint: 'claude.ai Share menu → invite jessem@senawave.com as Editor. No public link.' });
+    items.push(rate, { id: 'backup', label: 'Back up to your Drive', done: backupFresh, to: '/connections', hint: 'Connections → Back up now. A dated copy in a "Senawave Tracker" folder; do it weekly.' });
+    return items;
+  }
+
+  if (ctx.mode === 'google') {
+    return [
+      { id: 'sync', label: 'Create or link the shared Drive file', done: !!d.settings.driveFileId, to: '/settings', hint: 'Settings → Google Drive sync → Sync now.' },
+      { id: 'design', label: 'Read the Senawave Design folder', done: ctx.driveSnapshot, to: '/files', hint: 'Connections → turn on the Design folder switch, sign in again, then Files → Refresh.' },
+      { id: 'gmail', label: 'Turn on Gmail (read-only)', done: d.settings.gmailEnabled, to: '/connections', hint: 'Connections → Google sign-in (this site) → Gmail switch.' },
+      rate,
+    ];
+  }
+
   return [
-    { id: 'google', label: 'Sign in with Google', done: opts.googleSignedIn, to: '/settings', hint: opts.googleConfigured ? 'Settings → Account' : 'Needs a client id in .env.local first (README → Google setup).' },
-    { id: 'design', label: 'Connect the Senawave Design folder', done: opts.driveSnapshot, to: '/files', hint: 'Files → Refresh from Drive. Needs the read-only Drive connection in Settings.' },
-    { id: 'gmail', label: 'Connect Gmail for Jesse / David threads', done: d.settings.gmailEnabled, to: '/settings', hint: 'Settings → Connections → Gmail. Read-only; only @senawave.com mail is listed.' },
-    { id: 'project', label: 'Have a real project (Fluence)', done: hasReal, to: '/projects', hint: 'Fluence is seeded; delete the SAMPLE project from Settings when you no longer need it.' },
-    { id: 'rate', label: 'Set your hourly rate', done: !!d.settings.hourlyRate, to: '/settings', hint: 'Stays on this device; totals the time log for the Gusto invoice.' },
-    { id: 'sync', label: 'Turn on Drive sync of the tracker', done: !!d.settings.driveFileId, to: '/settings', hint: 'Settings → Google Drive sync → Sync now. Makes the tracker follow you across devices.' },
+    { id: 'backup', label: 'Save a backup file this week', done: backupFresh, to: '/settings', hint: 'Settings → Archive and update → Save backup file. Offline, this browser is the only copy.' },
+    rate,
   ];
 }
 

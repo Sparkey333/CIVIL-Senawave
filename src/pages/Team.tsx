@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { COMPANY, OTHER_ENTITIES } from '@/data/company';
+import { COMPANY } from '@/data/company';
 import { DESIGN_TEAM_IMPLICATIONS, JOB_POSTING } from '@/data/jobPosting';
 import { addTeamMember, deleteTeamMember, newTeamMember, restoreEntity, updateTeamMember, useAppData } from '@/store/store';
 import { toast } from '@/components/Toast';
 import type { TeamMember } from '@/lib/types';
 import { Badge, Callout, Card, ConfirmButton, ExtLink, Field, KV, Tabs, VerifiedBadge, useLocalTab } from '@/components/ui';
-import { fmtDate } from '@/lib/ids';
 
 type Tab = 'people' | 'company' | 'posting';
 
@@ -27,10 +26,7 @@ function People() {
   const [draft, setDraft] = useState(() => newTeamMember());
   return (
     <>
-      <Callout kind="info">
-        <p style={{ marginBottom: 4 }}><strong>Verification, {fmtDate(COMPANY.researchDate)}.</strong> Green = confirmed by primary or independent sources; amber = search-snippet evidence, open the links to confirm; red = nothing found publicly.</p>
-        <p className="muted" style={{ fontSize: 12.5 }}>{COMPANY.researchCaveat}</p>
-      </Callout>
+      <Callout kind="info">Everyone on the tracker sees this list. Keep it to work details: role, what they own, how to reach them.</Callout>
       <div className="grid cols-2">
         {data.team.map((m) => <Member key={m.id} m={m} />)}
       </div>
@@ -46,7 +42,7 @@ function People() {
           <p className="muted">PE / Engineer of Record, Senawave construction leads, agency contacts (UDOT Region 1 permits, city engineers), Blue Stakes.</p>
         )}
       </Card>
-      <Card title="Other Senawave people found in public sources" subtitle="Not on the team list — for orientation only.">
+      <Card title="Other Senawave people (public sources)" subtitle="Not on the team list; for knowing who is who.">
         <div className="tbl-wrap">
           <table className="tbl compact">
             <tbody>{COMPANY.otherPeople.map((p) => <tr key={p.name}><td className="nowrap"><strong>{p.name}</strong></td><td>{p.role}</td><td><ExtLink href={p.source}>source ↗</ExtLink></td></tr>)}</tbody>
@@ -77,10 +73,7 @@ function Member({ m }: { m: TeamMember }) {
       title={m.name}
       subtitle={m.role}
       actions={
-        <div className="row">
-          <VerifiedBadge level={m.verified} />
-          <button className="btn sm ghost" onClick={() => setEditing(true)}>Edit</button>
-        </div>
+        <button className="btn sm ghost" onClick={() => setEditing(true)}>Edit</button>
       }
     >
       <KV
@@ -109,13 +102,6 @@ function MemberForm({ value, onChange }: { value: TeamMember; onChange: (p: Part
       <Field label="Organisation"><input value={value.org} onChange={(e) => onChange({ org: e.target.value })} /></Field>
       <Field label="Email"><input type="email" value={value.email} onChange={(e) => onChange({ email: e.target.value })} /></Field>
       <Field label="Phone"><input value={value.phone} onChange={(e) => onChange({ phone: e.target.value })} /></Field>
-      <Field label="Verification">
-        <select value={value.verified} onChange={(e) => onChange({ verified: e.target.value as TeamMember['verified'] })}>
-          <option value="verified">Verified</option>
-          <option value="partial">Partly verified</option>
-          <option value="unverified">Unverified</option>
-        </select>
-      </Field>
       <Field label="Responsibilities" className="span-all"><textarea value={value.responsibilities} onChange={(e) => onChange({ responsibilities: e.target.value })} /></Field>
       <Field label="Notes" className="span-all"><textarea value={value.notes} onChange={(e) => onChange({ notes: e.target.value })} /></Field>
       <Field label="Links (one per line: Label | https://…)" className="span-all">
@@ -150,7 +136,7 @@ function Company() {
             ['Web', <><ExtLink href={COMPANY.website}>{COMPANY.website}</ExtLink> · <ExtLink href={COMPANY.linkedin}>LinkedIn</ExtLink></>],
           ]}
         />
-        <p className="muted" style={{ fontSize: 12.5, marginTop: 10 }}>{COMPANY.researchCaveat} Full write-up with every source: docs/research-senawave.md in the repo.</p>
+        <p className="muted" style={{ fontSize: 12.5, marginTop: 10 }}>{COMPANY.sourceNote}</p>
       </Card>
       <Card title="Facts and sources">
         <div className="tbl-wrap">
@@ -189,13 +175,6 @@ function Company() {
           </div>
         </Card>
       </div>
-      <Card title="Names in your folder path that are not Senawave">
-        <div className="tbl-wrap">
-          <table className="tbl compact">
-            <tbody>{OTHER_ENTITIES.map((e) => <tr key={e.name}><td className="nowrap"><strong>{e.name}</strong></td><td>{e.finding}</td><td><VerifiedBadge level={e.level} /></td></tr>)}</tbody>
-          </table>
-        </div>
-      </Card>
     </>
   );
 }
@@ -204,7 +183,7 @@ function Posting() {
   const J = JOB_POSTING;
   return (
     <>
-      <Card title={J.title} subtitle={`${J.company} · Indeed rating ${J.indeedRating} · ${J.location} · ${J.pay} · ${J.type}`} actions={<Badge kind="warn">{J.status}</Badge>}>
+      <Card title={J.title} subtitle={`${J.company} · ${J.location} · ${J.pay} · ${J.type}`} actions={<Badge kind="warn">{J.status}</Badge>}>
         <div className="group-title">About Senawave</div>
         <p>{J.about}</p>
         <div className="group-title">The role</div>

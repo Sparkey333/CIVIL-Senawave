@@ -2,7 +2,6 @@
 export const JOB_POSTING = {
   title: 'Professional Engineer (PE) – Fiber Network Design (Contract, Remote – Utah License Required)',
   company: 'Senawave',
-  indeedRating: '2.6',
   location: 'Remote',
   pay: '$75 – $100 an hour',
   type: 'Contract / 1099',

@@ -5,6 +5,8 @@ import {
   addPrint, addRedline, deletePrint, deleteRedline, newPrint, newRedline, restoreEntity, restorePrint, setPrintAnalysis, updateFinding, updatePrint, updateRedline,
 } from '@/store/store';
 import { buildAnalysisPrompt, currentPrint, openFindingCount, parseAnalysis, printsFor, redlineAgenda, redlinesFor, sortFindings } from '@/lib/prints';
+import { analyzePrint, type AnalysisError } from '@/lib/aiAnalysis';
+import { useAuth } from '@/lib/auth';
 import { fmtDate } from '@/lib/ids';
 import { Badge, Callout, Card, ConfirmButton, Empty, Field, Progress } from '@/components/ui';
 import { toast } from '@/components/Toast';
@@ -28,11 +30,12 @@ export function PrintsTab({ project, prints, redlines }: { project: Project; pri
   const selected = list.find((p) => p.id === pickedId) || currentPrint(list);
   const reds = selected ? redlinesFor(redlines, selected.id) : [];
   const previous = selected ? list[list.indexOf(selected) + 1] : undefined;
+  const { user } = useAuth();
 
   return (
     <>
       <Callout kind="info">
-        <strong>Three steps for every new print.</strong> 1. Log the print and its Drive link. 2. Add the redlines from the review PDF, one line each. 3. Ask for the AI analysis and paste it in. Newest print is on the left, the checklist for it is on the right.
+        <strong>Three steps for every new print.</strong> 1. Log the print with its Drive link. 2. Add the redlines from the review, one line each. 3. {user?.mode === 'claude' ? 'Press "Analyze with Claude".' : 'Get the AI analysis (copy the prompt into a Claude chat, paste the answer back).'} Then work the open redlines until the next print. Newest print is on the left.
       </Callout>
 
       <div className="prints-layout">
@@ -228,10 +231,14 @@ function ReviewCard({ project, print, reds }: { project: Project; print: PrintSe
 }
 
 function AnalysisCard({ project, print, previous, reds }: { project: Project; print: PrintSet; previous?: PrintSet; reds: Redline[] }) {
+  const { user, canEdit } = useAuth();
   const [pasting, setPasting] = useState(false);
   const [text, setText] = useState('');
   const [error, setError] = useState('');
+  const [run, setRun] = useState<{ stage: string; chars: number; ctl: AbortController } | null>(null);
+  const [runError, setRunError] = useState<{ message: string; raw?: string } | null>(null);
   const a = print.analysis;
+  const inApp = user?.mode === 'claude' && canEdit;
 
   const prompt = () => copyText(buildAnalysisPrompt(project, print, reds, previous), 'Prompt copied. Paste it into a Claude chat that can open your Drive, then paste the JSON answer back here.');
   const save = () => {
@@ -242,6 +249,26 @@ function AnalysisCard({ project, print, previous, reds }: { project: Project; pr
     setError('');
     setPasting(false);
     toast('AI analysis saved on this print.');
+  };
+  const analyze = async () => {
+    const ctl = new AbortController();
+    setRun({ stage: 'Starting…', chars: 0, ctl });
+    setRunError(null);
+    try {
+      const result = await analyzePrint(project, print, reds, previous, {
+        signal: ctl.signal,
+        by: 'Claude (in the tracker)',
+        onStage: (stage) => setRun((r) => (r ? { ...r, stage } : r)),
+        onText: (t) => setRun((r) => (r ? { ...r, stage: 'Claude is writing the notes…', chars: t.length } : r)),
+      });
+      setPrintAnalysis(print.id, result);
+      toast(`AI analysis saved: ${result.findings.length} notes.`);
+    } catch (e) {
+      const err = e as AnalysisError;
+      if (err.code !== 'cancelled') setRunError({ message: err.message, raw: err.raw });
+    } finally {
+      setRun(null);
+    }
   };
   const toRedline = (f: AnalysisFinding) => {
     addRedline(newRedline(project.id, print.id, { sheet: f.sheet, kind: 'check', text: f.recommendation || f.issue, by: 'AI analysis' }));
@@ -255,11 +282,36 @@ function AnalysisCard({ project, print, previous, reds }: { project: Project; pr
       subtitle="Notes and recommendations on this print and what changed since the last one. Always check them against the PDF."
       actions={
         <div className="row" style={{ gap: 6 }}>
-          <button className="btn sm" onClick={prompt}>Copy prompt for a new analysis</button>
-          <button className="btn sm" onClick={() => setPasting((v) => !v)}>{pasting ? 'Cancel' : 'Paste an analysis'}</button>
+          {inApp && !run && (a ? (
+            <ConfirmButton label="Analyze again" confirmLabel="Replace the notes below" className="btn sm primary" onConfirm={() => void analyze()} />
+          ) : (
+            <button className="btn sm primary" onClick={() => void analyze()}>Analyze with Claude</button>
+          ))}
+          <button className="btn sm ghost" onClick={prompt}>Copy prompt</button>
+          <button className="btn sm ghost" onClick={() => setPasting((v) => !v)}>{pasting ? 'Cancel' : 'Paste an analysis'}</button>
         </div>
       }
     >
+      {run && (
+        <Callout kind="info">
+          <div className="row between">
+            <span><strong>{run.stage}</strong>{run.chars > 0 && <span className="faint"> · {run.chars.toLocaleString()} characters so far</span>}</span>
+            <button className="btn sm" onClick={() => run.ctl.abort()}>Stop</button>
+          </div>
+          <div className="faint" style={{ fontSize: 12, marginTop: 4 }}>Reads the PDF text from your Drive and asks Claude on your account. Keep this tab open.</div>
+        </Callout>
+      )}
+      {runError && (
+        <Callout kind="bad">
+          {runError.message}
+          {runError.raw && (
+            <details style={{ marginTop: 6 }}>
+              <summary>Show what came back</summary>
+              <textarea readOnly rows={6} value={runError.raw} className="mono" style={{ marginTop: 6 }} />
+            </details>
+          )}
+        </Callout>
+      )}
       {pasting && (
         <div style={{ marginBottom: 12 }}>
           <Field label="Paste the JSON answer" hint="Replaces the analysis below. Findings start as open.">
@@ -272,7 +324,9 @@ function AnalysisCard({ project, print, previous, reds }: { project: Project; pr
 
       {!a ? (
         <Empty title="No analysis for this print yet">
-          Step 1: press "Copy prompt for a new analysis". Step 2: paste it into a Claude chat that can open your Drive. Step 3: press "Paste an analysis" and paste the answer here.
+          {inApp
+            ? 'Press "Analyze with Claude". It reads this print, the previous one and the marked-up review from your Drive, then lists what changed and what the redlines do not cover. It takes a minute or two.'
+            : 'Press "Copy prompt", paste it into a Claude chat that can open your Drive, then press "Paste an analysis" and paste the answer here.'}
         </Empty>
       ) : (
         <>

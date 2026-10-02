@@ -25,7 +25,7 @@ describe('project archive', () => {
   it('returns null for an unknown project and names the file from the project number and date', () => {
     expect(buildProjectArchive(state, 'nope', { by: 'b', includeTime: false })).toBeNull();
     const a = buildProjectArchive(state, 'prj_fluence', { by: 'b', includeTime: false, now: '2026-10-02T12:00:00Z' })!;
-    expect(archiveFileName(a)).toBe('senawave-archive-26-0002-2026-10-02.json');
+    expect(archiveFileName(a)).toBe('senawave-archive-26-0009-2026-10-02.json');
   });
 
   it('validates the shape', () => {

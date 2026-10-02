@@ -6,15 +6,16 @@ import { daysUntil, fmtDate, todayIso } from '@/lib/ids';
 import { Badge, Card, Progress, Stat } from '@/components/ui';
 import { StatusBadge } from '@/components/StatusBadge';
 import { NextStep } from '@/components/NextStep';
-import { setupChecklist } from '@/lib/guidance';
-import { useAuth } from '@/lib/auth';
-import { loadSnapshot } from '@/lib/driveFiles';
+import { BabySteps } from '@/components/BabySteps';
+import { useSetup } from '@/lib/useSetup';
+import { nextBabySteps } from '@/lib/nextSteps';
 
 export default function Dashboard() {
   const data = useAppData();
-  const { user, googleConfigured } = useAuth();
-  const setup = setupChecklist(data, { googleSignedIn: user?.mode === 'google', googleConfigured, driveSnapshot: !!loadSnapshot() });
+  const setup = useSetup();
   const setupDone = setup.filter((s) => s.done).length;
+  const steps = nextBabySteps(data, { today: todayIso(), setup });
+  const projectNames = Object.fromEntries(data.projects.map((p) => [p.id, p.number || p.name]));
   const active = data.projects.filter((p) => p.status !== 'closed');
   const openActions = data.notes.filter((n) => (n.type === 'action' || n.type === 'redline' || n.type === 'agency-comment') && !n.done);
   const sheetsTotal = active.reduce((a, p) => a + p.sheets.length, 0);
@@ -32,18 +33,27 @@ export default function Dashboard() {
 
   return (
     <>
-      {setupDone < setup.length && (
-        <Card title={`Getting set up · ${setupDone}/${setup.length}`} subtitle="Baby steps, in order. Each one is a link; the hint says where to click." className="tight">
-          <ul className="check-list">
-            {setup.map((s) => (
-              <li key={s.id} className={s.done ? 'done' : ''}>
-                <input type="checkbox" checked={s.done} readOnly />
-                <label><Link to={s.to}>{s.label}</Link><span className="meta" style={{ fontFamily: 'inherit' }}>{s.done ? '' : s.hint}</span></label>
-              </li>
-            ))}
-          </ul>
+      <div className="grid steps-grid" style={{ marginBottom: 16 }}>
+        <Card title="Next baby steps" subtitle="In order. Do the first one, tick it where the link takes you, and the list moves up." className="tight">
+          <BabySteps steps={steps} projectNames={projectNames} />
         </Card>
-      )}
+        {setupDone < setup.length ? (
+          <Card title={`Setup · ${setupDone} of ${setup.length}`} subtitle="One time. Each line links to where it is done." className="tight">
+            <ul className="check-list">
+              {setup.map((s) => (
+                <li key={s.id} className={s.done ? 'done' : ''}>
+                  <input type="checkbox" checked={s.done} readOnly aria-label={s.done ? 'done' : 'not done'} />
+                  <label><Link to={s.to}>{s.label}</Link><span className="meta" style={{ fontFamily: 'inherit' }}>{s.done ? '' : s.hint}</span></label>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        ) : (
+          <Card title="Setup complete" className="tight">
+            <p className="muted" style={{ margin: 0 }}>Everything is connected. <Link to="/connections">Connections</Link> shows the details; back up weekly.</p>
+          </Card>
+        )}
+      </div>
       <div className="grid cols-4" style={{ marginBottom: 16 }}>
         <Card className="tight"><Stat value={active.length} label="active projects" /></Card>
         <Card className="tight"><Stat value={`${sheetsDone}/${sheetsTotal}`} label="plan sheets through QC" /></Card>

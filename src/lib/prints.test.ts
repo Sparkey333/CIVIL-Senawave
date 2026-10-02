@@ -26,7 +26,9 @@ describe('print ordering and counts', () => {
     expect(a.basis).toMatch(/could not see/i);
     expect(a.findings.length).toBeGreaterThan(5);
     expect(new Set(a.findings.map((f) => f.id)).size).toBe(a.findings.length);
-    expect(openFindingCount(a)).toBe(a.findings.length);
+    // The project-number finding was fixed in the tracker, so it ships as done; the rest are open.
+    expect(openFindingCount(a)).toBe(a.findings.length - 1);
+    expect(a.findings.find((f) => f.id === 'fnd_fluence_v2_01')?.status).toBe('done');
     expect(sortFindings(a.findings)[0].severity).toBe('high');
   });
 

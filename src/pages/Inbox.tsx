@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { SCOPES } from '@/lib/google';
 import { extractTasks, groupThreads, listSenawaveMail, type MailMessage } from '@/lib/gmail';
+import { gmailSenawave } from '@/lib/connectors';
 import { addNote, logActivity, newNote, useAppData } from '@/store/store';
 import type { NoteType } from '@/lib/types';
 import { Badge, Callout, Card, Empty } from '@/components/ui';
@@ -23,21 +24,28 @@ function loadCache(): { at: string; messages: MailMessage[] } | null {
 export default function Inbox() {
   const data = useAppData();
   const { user, getToken } = useAuth();
+  const nav = useNavigate();
   const [cache, setCache] = useState(() => loadCache());
   const [busy, setBusy] = useState(false);
   const [projectId, setProjectId] = useState(() => data.projects.find((p) => !p.sample)?.id || '');
   const threads = useMemo(() => groupThreads(cache?.messages || []), [cache]);
   const unread = threads.filter((t) => t.unread).length;
 
+  const viaClaude = user?.mode === 'claude';
   const refresh = async () => {
-    if (!user || user.mode !== 'google') return toast('Sign in with Google first.', 'bad');
-    if (!data.settings.gmailEnabled) return toast('Turn on the Gmail connection in Settings → Connections first.', 'bad');
+    if (!viaClaude) {
+      if (!user || user.mode !== 'google') return toast('Open the tracker in claude.ai, or sign in with Google, to read mail.', 'bad');
+      if (!data.settings.gmailEnabled) return toast('Turn on Gmail on the Connections page first, then sign in again.', 'bad');
+    }
     setBusy(true);
     try {
-      const token = await getToken(SCOPES.gmailReadonly);
-      const messages = await listSenawaveMail(token, user.email, { days: 45, max: 60 });
+      const messages = viaClaude ? await gmailSenawave(user?.email || '', { days: 45, max: 30 }) : await listSenawaveMail(await getToken(SCOPES.gmailReadonly), user!.email, { days: 45, max: 60 });
       const next = { at: new Date().toISOString(), messages };
-      localStorage.setItem(CACHE_KEY, JSON.stringify(next));
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(next));
+      } catch {
+        /* storage full or blocked: the list still shows for this visit */
+      }
       const newCount = messages.filter((m) => !cache?.messages.some((x) => x.id === m.id) && !m.isMine).length;
       setCache(next);
       toast(newCount ? `${newCount} new Senawave message${newCount > 1 ? 's' : ''}.` : 'Mailbox refreshed; nothing new from Senawave.');
@@ -51,7 +59,7 @@ export default function Inbox() {
 
   const fileAs = (m: MailMessage, type: NoteType, title: string, body: string) => {
     addNote(newNote(user?.name || 'me', { type, title, body: `${body}\n\nFrom ${m.from} <${m.fromEmail}> · ${fmtDateTime(m.date)}\n${m.link}`, tags: ['email', m.fromEmail.split('@')[0]], projectId: projectId || null }));
-    toast(`Filed as ${type}.`, 'ok', { label: 'Open notes', onClick: () => (window.location.href = projectId ? `/projects/${projectId}?tab=notes` : '/notes') });
+    toast(`Filed as ${type}.`, 'ok', { label: 'Open notes', onClick: () => nav(projectId ? `/projects/${projectId}?tab=notes` : '/notes') });
   };
 
   return (
@@ -76,7 +84,12 @@ export default function Inbox() {
       </Callout>
       {!cache && (
         <Empty title="No Senawave mail loaded yet">
-          <p>Settings → Connections → Gmail (read-only), sign in with Google, then Refresh. The threads Jesse and David have sent so far (introduction, geopackage, getting started, stamped plans, hours, meetings) were already turned into notes on the Fluence project — see <Link to="/projects">Projects</Link>.</p>
+          <p>
+            {user?.mode === 'claude'
+              ? 'Press Refresh. It reads @senawave.com threads from the last 45 days with your own Gmail connector (the first time, claude.ai asks you to allow Gmail). Nothing is sent, and nobody else sees your mail.'
+              : 'Connections → Google sign-in → Gmail switch, sign in again, then Refresh.'}{' '}
+            The threads so far (introduction, geopackage, getting started, stamped plans, hours, meetings, the prints) are already notes on the Fluence project — see <Link to="/projects">Projects</Link>.
+          </p>
         </Empty>
       )}
       {threads.map((t) => (

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { defaultSettings } from '@/store/seed';
-import { canWrite, driveRoleFor, normalizeMembers, roleFor, roleLabel, roleWithInvite } from './roles';
+import { canWrite, driveRoleFor, isPermanentAdmin, normalizeMembers, roleFor, roleForClaude, roleLabel, roleWithInvite } from './roles';
 import { isValidClientId } from './google';
 
 const settings = () => ({ ...defaultSettings(), ownerEmail: 'Brandon@Example.com', members: [{ email: 'jessem@senawave.com', name: 'Jesse', role: 'editor' as const, addedAt: 'x' }, { email: 'view@x.com', name: '', role: 'viewer' as const, addedAt: 'x' }] });
@@ -73,5 +73,29 @@ describe('invite arrivals', () => {
   it('never downgrades someone who is on the list, and never lets offline or signed-out through', () => {
     expect(roleWithInvite(settings(), { email: 'jessem@senawave.com', mode: 'google' }, true)).toBe('editor');
     expect(roleWithInvite(settings(), null, true)).toBeNull();
+  });
+});
+
+describe('permanent admin', () => {
+  it('is an admin in Google mode even when the owner field and the list say otherwise', () => {
+    const s = { ...settings(), ownerEmail: 'someone@else.com', members: [{ email: 'brandonlbarkey@gmail.com', name: 'B', role: 'viewer' as const, addedAt: 'x' }] };
+    expect(isPermanentAdmin(' BrandonLBarkey@gmail.com ')).toBe(true);
+    expect(roleFor(s, { email: 'BrandonLBarkey@gmail.com', mode: 'google' })).toBe('admin');
+  });
+  it('is never kept on the members list, so it cannot be demoted or removed there', () => {
+    const out = normalizeMembers([{ email: 'brandonlbarkey@gmail.com', name: 'B', role: 'viewer', addedAt: 'x' }, { email: 'jessem@senawave.com', name: 'J', role: 'editor', addedAt: 'x' }], 'other@x.com');
+    expect(out.map((m) => m.email)).toEqual(['jessem@senawave.com']);
+  });
+});
+
+describe('claude.ai roles', () => {
+  it('owner and permanent admin are admins; refused writers are viewers; everyone else edits', () => {
+    expect(roleForClaude({ isOwner: true, email: null, canWrite: null })).toBe('admin');
+    expect(roleForClaude({ isOwner: false, email: 'brandonlbarkey@gmail.com', canWrite: true })).toBe('admin');
+    expect(roleForClaude({ isOwner: false, email: 'jessem@senawave.com', canWrite: null })).toBe('editor');
+    expect(roleForClaude({ isOwner: false, email: 'jessem@senawave.com', canWrite: false })).toBe('viewer');
+    expect(roleForClaude({ isOwner: false, email: 'jessem@senawave.com', canWrite: null, readOnly: true })).toBe('viewer');
+    // claude.ai's own refusal wins even for a permanent admin who is not the owner of this copy.
+    expect(roleForClaude({ isOwner: false, email: 'brandonlbarkey@gmail.com', canWrite: false })).toBe('viewer');
   });
 });

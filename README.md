@@ -1,166 +1,137 @@
 # CIVIL-Senawave — Senawave Civil Tracker
 
-Internal web tool for the fiber-optic civil design work I do for **Senawave** (VAIX, Inc. dba Senawave
-Communications, Salt Lake City) in northern Utah: project and plan-set tracking, notes and redlines, the
-Plan Production Guide as searchable reference, and the verified background on the company and the people
-I work with. It is a prototype meant for me first, and to be shared with David and Jesse later.
+Internal web tool for the fiber-optic civil design work done for **Senawave** (VAIX, Inc. dba Senawave
+Communications, Salt Lake City) in northern Utah: projects and plan sets, prints with their redlines and AI review
+notes, the running log of decisions and actions, the Plan Production Guide as searchable reference, and the next
+small step on every project. Shared by Brandon (admin) and Jesse.
 
-**Stack:** Vite 7 · React 19 · TypeScript · React Router 7. No backend. Data is local-first
-(browser storage) with optional Google sign-in and a Google Drive JSON sync file. No UI framework, no
-tracking, one 450 KB bundle.
+**Stack:** Vite 7 · React 19 · TypeScript · React Router 7. No backend of its own. Local-first: the browser
+always holds a full working copy; it is shared through claude.ai, a Google Drive file, or not at all.
+
+## Three ways to run it
+
+| | Shared on claude.ai (main) | Google Drive file (your own site) | This browser only |
+|---|---|---|---|
+| Who gets in | Whoever the owner shares the published tracker with in claude.ai's Share menu | The owner plus the people list in Settings | Whoever has the browser |
+| Sign-in | claude.ai | Google (needs a one-time Google Cloud OAuth client) | none |
+| Where the data lives | The tracker's own store on claude.ai, plus a working copy in each browser | One JSON file in the owner's Drive, plus each browser | This browser |
+| Live updates | Yes: usually seconds, at most about 30 s | When someone presses Sync | — |
+| Google Drive, Gmail, Calendar | Each person's own claude.ai connectors | The Google sign-in's read-only scopes | — |
+| AI analysis of a print | **Analyze with Claude** button | Copy prompt → Claude chat → paste the answer | Same as Google |
+
+`brandonlbarkey@gmail.com` is an **admin in every mode** (`PERMANENT_ADMINS` in `src/lib/roles.ts`): it cannot be
+removed or demoted from inside the app, whatever the people list or the owner field says.
 
 ## What is in the tool
 
 | Page | What it does |
 |---|---|
-| **Dashboard** | Active projects with workflow / QC progress, due-soon list (plan sets, permits, actions), recent notes, pipeline strip. |
-| **Projects** | One project = one drawing = one plan set. Titleblock fields (the ones SENATITLE writes), CRS, route length, funding (BEAD…), Drive/ArcGIS links. Tabs: **Sheet index** tracker (PageNumber, Angle, CellFt, ClipX0/X1, MatchL/R/T/B, per-sheet align → clip → side panel → titleblock → QC, with index checks that mirror guide 4.6/6.4), **Workflow** (guide 1.4, tickable), **QC checklist** (guide 11), **Permits** (municipal / county / UDOT / railroad / Blue Stakes rounds), **Notes**, **Time**. |
-| **Notes & log** | Running log: notes, action items, PE redlines, agency comments, meetings, decisions, issues. Tags, due dates, tied to a project and a sheet. |
-| **Time log** | Hours per project, billable / invoiced flags, CSV export for the Gusto contractor invoice. |
-| **Plan Production Guide** | Rev 5 as tables: the numbers, whole-job checklist, ArcGIS scripts and options, BricsCAD import, per-sheet recipe, side panel / vicinity / basemaps, titleblocks, QC, troubleshooting, all 34 SENA commands, layer standard with colour swatches, symbol library (with the symbol sheet image), old-layer migration map, maintenance rules, and a calculator (sheets per run, clip rectangle, text heights, symbol scale). |
-| **Team & company** | People cards with verified / partly verified / unverified badges and sources (David Bradshaw verified; Jesse Montgomery not found publicly — to confirm), Senawave facts with sources, BEAD award, franchise agreements by city, service area, and the original Indeed PE / Engineer-of-Record posting with what it implies for the design seat. |
-| **Tools & integrations** | Quick links (Drive, Gusto, BricsCAD, ArcGIS, UDOT, Blue Stakes, UBC, DOPL), Google Drive layout, Gusto invoicing notes, BricsCAD and ArcGIS Pro setup checklists from the guide, agencies and permit types. |
-| **Daily brief & log** | Morning: setup checklist, today's meetings and due items, one next step per project (from the guide order), open actions, Drive changes in the last 24 h. Evening: everything you ticked, added and logged today, hours, next steps and open items as text to save as a note or paste into an email. |
-| **Files (Drive)** | The shared Senawave *Design* folder (Templates + Projects, owned by Jesse) read-only: project folder grouped into drawing / xrefs / imagery / GIS / docs / scripts, changes since your last check, and "these files say step X is done" suggestions for the workflow. Ships with a snapshot taken 1 Oct 2026 so it works before Google sign-in. |
-| **Prints & reviews** | A tab on every project. Log each print (PDF name, Drive link), the reviewer's marked-up PDF, and every redline as one line (sheet, fix or check, status, what was done). Each print also holds an AI analysis: what changed since the last print and notes with recommendations, each one tick-able or turnable into a redline. Fluence ships with its first two prints, the 13 redlines from the 2 Oct review and an analysis. The app does not call an AI itself: "Copy prompt" builds the request and "Paste an analysis" reads the JSON answer back. |
-| **Senawave inbox** | Read-only Gmail limited to @senawave.com threads. File any message as a meeting note, decision or action; likely tasks are pulled out of the text as one-click actions. |
-| **Settings** | Google sign-in, connections (read-only Drive for the Design folder, read-only Gmail), Google client id (paste it in, no rebuild), **People and access** (admin / editor / viewer, share the Drive file with Jesse from the list, copy an invite), hourly rate, theme, Drive sync (folder, scope, shared file id, auto-sync, whether the time log goes in the file), **Archive and update** (backup file, import merge or replace, per-project archive, local backups with restore), delete sample data, reset. Rate, theme and this device's sync settings never leave the browser. |
+| **Dashboard** | **Next baby steps**: one ordered list across everything (the next setup step, today's meeting, overdue actions, then per project: open redlines, AI notes to decide, actions due this week, permits, the next plan-production step), each with a link straight to where it is done and whose it is ("yours", "Jesse"). Setup checklist for the mode you are in, projects with progress, due soon, recent notes. |
+| **Projects** | One project = one plan set. Tabs: **Overview** (record, next steps on this project, archive file), **Sheet index**, **Workflow** (guide 1.4), **QC checklist** (guide 11), **Prints & reviews**, **Permits**, **Notes**, **Time**. |
+| **Prints & reviews** | Each print (PDF, Drive link), the reviewer's marked-up PDF and every redline as one line (sheet, fix or check, status, what was done). The AI analysis lists what changed since the last print and notes the redlines do not cover; each note can be ticked, dismissed or turned into a redline. In claude.ai, **Analyze with Claude** reads the PDFs' text from your Drive and runs the analysis on your claude.ai account; elsewhere, copy the prompt into a Claude chat and paste the answer back. |
+| **Daily brief & log** | Morning: setup, today's items, the next baby steps, your calendar (claude.ai), open items, prints and redlines, Drive changes. Evening: what you did today as text to save or email. |
+| **Notes & log**, **Time log** | The running log (actions with due dates, decisions, meetings, agency comments) and hours per project. |
+| **Files (Drive)** | The shared Design folder (Templates + Projects): project folder by type, changes since the last read, "these files say step X is done". Reads through your Google Drive connector in claude.ai, or the Google sign-in elsewhere; ships with a 1 Oct snapshot. |
+| **Senawave inbox** | @senawave.com threads, read-only. File a message as a meeting note, decision or action. |
+| **Plan Production Guide**, **Tools** | Rev 5 as tables and calculators; setup checklists and links. |
+| **Team & company** | Work details for the people on the project, public company facts that matter for permitting (BEAD award, franchises), the PE posting. Everyone on the tracker sees this page. |
+| **Connections** | How this copy is connected; the shared tracker's status (saved, saving, view only); your connectors with Allow and Test buttons; **Back up to my Drive**; **Share with Jesse** (owner); the one-time Google setup for your own site as ticked steps with exact values; offline archives. |
+| **Settings** | Account, people and access, your rate, theme and evening hour (private to you), Drive sync (Google mode), archive and update, local backups. |
 
-The sample project (`26-0001 SAMPLE — Brigham City north corridor`) is seeded so nothing is empty on first
-open. Delete it from Settings once real work is in.
+## Shared on claude.ai
 
-## Run it
+The tracker is published as a claude.ai artifact that declares five runtime capabilities: `db` (the shared store),
+`user` (who is viewing, with name and email), `mcp` (the viewer's Google Drive, Gmail and Google Calendar connectors,
+limited to the tools listed in `MCP_MANIFEST` in `src/lib/connectors.ts`), `sample` (the in-app analysis, on the
+viewer's own account) and `downloads` (saving backup and archive files).
+
+- **Roles.** The owner and the permanent admins are admins. Anyone claude.ai lets write is an editor; Viewers,
+  Commenters, and anyone whose save claude.ai refuses, are viewers (the app goes read-only and says so).
+- **What is shared.** Projects, notes, permits, prints, redlines, the team list and the shared settings. Each
+  person's **time log, rate, theme and evening hour** live in their own private part of the store
+  (`data/users/<id>/…`), which nobody else can read, the owner included. The demo project is never shared.
+- **Connectors.** Each person allows their own; nobody sees another person's mail or Drive. The tracker only reads
+  with them, except **Back up to my Drive**, which creates a dated JSON file in a "Senawave Tracker" folder in your
+  own My Drive (never overwriting).
+
+### Sharing with Jesse
+
+1. Open the tracker in claude.ai and press **Share**.
+2. Invite **jessem@senawave.com** as **Editor**. Viewer and Commenter can only read.
+3. Leave the **public link off**: claude.ai lets people from outside your organization save changes only while there
+   is no public link.
+4. Jesse signs in to claude.ai as jessem@senawave.com and opens the link. Connections → *Share with Jesse* has the
+   same steps and a message to send him; it shows "1 other person" once he has made a change.
+
+## Run it yourself
 
 ```bash
 npm install
 npm run dev          # http://localhost:5173
 npm run build        # typecheck + production build into dist/
-npm run preview      # serve dist/ on :4173
-npm test             # vitest (merge logic, sheet-index checks, guide arithmetic)
+npm test             # vitest: merge, shared-store sync, next steps, roles, prints, archives…
 ```
 
-Node 20+ required. With no Google client id configured the app runs in **offline mode**: click *Continue
-offline* on the sign-in screen and everything is stored in that browser's localStorage. Export JSON from
-Settings before clearing browser data.
+Node 20+. Outside claude.ai the app starts on the sign-in page: **Continue offline**, or sign in with Google once a
+client id is set. The artifact build uses hash routing and relative paths:
+`VITE_HASH_ROUTER=1 VITE_BASE_PATH=./ npx vite build`.
 
-## Google sign-in and Drive sync (one-time setup)
+### Google sign-in on your own site (one-time)
 
-The tool uses Google Identity Services (OAuth 2.0 token flow) straight from the browser; there is no server
-and no secret. The Drive sync keeps one file, `senawave-tracker.json`, in a folder in the signed-in
-account's My Drive and merges record-by-record (newest wins) on every sync.
+Connections → *Google sign-in on your own site* walks through it with links and copy buttons:
 
-1. Google Cloud Console → create a project (e.g. "Senawave Tracker").
-2. **APIs & Services → Library** → enable **Google Drive API**.
-3. **APIs & Services → OAuth consent screen** → External → fill the app name and your email → add scopes
-   `openid`, `email`, `profile`, `https://www.googleapis.com/auth/drive.file` (add
-   `…/auth/drive` only if you will use a shared team file, see below; `…/auth/drive.readonly` for the Files page;
-   `…/auth/gmail.readonly` for the Senawave inbox) → **Test users**: add your Gmail, and
-   later David's and Jesse's. Leave the app in *Testing*; with test users nothing needs Google verification.
-4. **APIs & Services → Credentials → Create credentials → OAuth client ID → Web application**.
-   Authorized JavaScript origins: `http://localhost:5173`, `http://localhost:4173`, and the URL you host at
-   (for GitHub Pages: `https://<user>.github.io`). No redirect URI is needed for the token flow.
-5. Give the client id to the app. Easiest: open the app, and on the sign-in page (or Settings → Account) paste it
-   into **Google client id**. It is saved on that device, no rebuild. Or bake it into a build with
-   `.env.local`:
-   ```
-   VITE_GOOGLE_CLIENT_ID=1234567890-abc.apps.googleusercontent.com
-   ```
-   then `npm run dev` / `npm run build` (a build-time id wins over a pasted one).
-6. Sign in → Settings → **Sync now**. The folder *Senawave Tracker* and the JSON file are created in your
-   Drive. Turn on auto-sync if you want edits pushed 20 s after you stop typing.
+1. Create a Google Cloud project.
+2. Turn on the Drive API and the Gmail API.
+3. Consent screen (Google Auth Platform): External, Testing; scopes `openid email profile`,
+   `…/auth/drive.file`, `…/auth/drive.readonly`, `…/auth/gmail.readonly` (add `…/auth/drive` only to open a team file
+   someone else owns); test users brandonlbarkey@gmail.com and jessem@senawave.com.
+4. OAuth client ID → Web application; Authorized JavaScript origin = the address you open the tracker at. No redirect URI.
+5. Paste the client ID in the app (saved on that device), or build with `VITE_GOOGLE_CLIENT_ID` in `.env.local`.
+6. Sign in → Settings → **Sync now** creates the data file → Settings → People shares it with Jesse (or copy the
+   invite link, which points his device at your file).
 
-### Online and offline
+Roles in this mode come from the people list in the data file; the Drive file's sharing is what Google enforces
+(viewers get view-only access to the file).
 
-| | Offline | Online (Google) |
-|---|---|---|
-| Who | Whoever has the browser. They are the admin of what is stored on that device. | The owner (admin) and the people on the list in Settings → People and access. |
-| Where the data lives | This browser only. | This browser plus one data file in the owner's Google Drive. |
-| Archive and update | Save a backup file, import a file (merge or replace), save one project as an archive file, three rolling local backups. | All of the offline tools, plus Sync (pull, merge, push). |
+### Offline, archive and update
 
-You can switch between them at any time. Offline mode never needs a client id, an account or a network.
+Works in every mode, with no network:
 
-### Roles
-
-The owner (the Google account in Settings → Owner) is always an **admin**. Everyone else is added under
-**Settings → People and access** with one of three roles:
-
-- **Admin:** everything, including the people list, resetting data and replace-imports. Gets edit access to the Drive file.
-- **Editor:** adds and changes projects, prints, redlines, notes and time. Gets edit access to the Drive file.
-- **Viewer:** read only. The app refuses every edit on their device and their Sync button only pulls. They get view-only
-  access to the Drive file, which **Google** enforces, so they cannot change it even from another tool.
-
-The roles are enforced in the app; the Drive file's own sharing is the real lock. Anyone with edit access to the file can
-change the people list inside it, so give edit access only to people you trust.
-
-### Sharing with Jesse (or anyone)
-
-1. Sign in with Google (owner account) and press **Sync now** once. That creates the data file in your Drive.
-2. Settings → **People and access**. Jesse (jessem@senawave.com) is already listed as an editor. Press **Share Drive
-   file** on his row (or add anyone else with **Add person**, which can share the file in the same step and have Google
-   email the invite).
-3. Add Jesse's email as a **test user** on the OAuth consent screen (step 3 above) while the app is in Testing.
-4. Press **Copy invite message** and send it to him. It holds a link with `?join=<file id>`: when he opens it and signs in
-   with Google, his device points at your data file with the full Drive scope (needed to open a file someone else owns),
-   and he presses Sync. His email must be on the list or the sign-in is refused.
-
-Edits merge per record, newest wins; two people editing the same field within one sync window is last-writer-wins.
-Before sharing, set *Time log in the Drive file* to **Kept private** if you do not want your hours in the shared file; your
-hourly rate never goes into the file either way. Deletes sync as hidden markers, so a project removed on one side
-disappears on the other instead of coming back.
-
-### Offline sharing, archive and update
-
-No Google needed to hand work to someone or to keep a copy:
-
-- **Project archive:** open a project's Overview → **Save archive file** (or **Copy archive**). The file holds the project
-  and its notes, permits, prints and redlines; your time entries only if you tick *with my time*; never your rate,
-  settings or the people list.
-- **Update:** Settings → Archive and update → choose a file. A project archive or a full backup is **merged**: both
-  sides are kept, the newest edit on each row wins, and a message says how many rows were added and updated. *Replace*
-  (admin only) swaps everything and backs the old data up first.
-- **Local backups:** one a day and before every import-replace, archive import, reset or restore; the three newest are
-  kept in the browser and can be restored from Settings.
-
-When this outgrows a JSON file (more than three people, or you want live updates), the storage layer is
-isolated in `src/store/store.ts` + `src/lib/sync.ts`; swapping in Firestore or a small API is the intended
-next step — see `docs/architecture.md`.
-
-## Deploy (GitHub Pages)
-
-`.github/workflows/deploy.yml` builds and publishes `dist/` to GitHub Pages on every push to `main` when
-Pages is enabled for the repo (Settings → Pages → Source: GitHub Actions). Set the repository variable
-`VITE_BASE_PATH` to `/CIVIL-Senawave/` (the repo name) and the secret / variable `VITE_GOOGLE_CLIENT_ID`
-for sign-in; add the Pages origin to the OAuth client. The app uses history routing, so the workflow copies
-`index.html` to `404.html` so deep links work on Pages. Any static host works the same way.
+- **Backup file:** Settings → Archive and update → Save backup file (everything, your rate and time log included).
+- **Project archive:** a project's Overview → Save archive file. Never includes anyone's rate or the people list.
+- **Update:** import a backup or archive. Merge keeps both sides and the newest edit wins per row; Replace (admin, not in
+  the shared tracker) swaps everything after backing up.
+- **Local backups:** one a day and before every risky step; three kept in the browser.
 
 ## Repository layout
 
 ```
 src/
-  app/          App routes + Layout (sidebar, top bar, sync button)
-  pages/        Dashboard, Projects, ProjectDetail, Notes, TimeLog, Reference, Team, Tools, Settings, SignIn
-  components/   UI primitives, ProjectForm, NoteList, TimeTable, StatusBadge, SyncButton, Toast
-  store/        store.ts (local-first store, CRUD, import/export) · seed.ts (defaults + sample project)
-  lib/          types.ts (data model) · auth.tsx · google.ts · drive.ts · sync.ts · merge.ts · sheets.ts · ids.ts
-  data/         guide.ts (Plan Production Guide Rev 5 as data) · company.ts (verified research) · jobPosting.ts
-docs/
-  research-senawave.md         background check with sources and verification levels
-  plan-production-guide.md     Markdown transcription of the guide
-  architecture.md              data model, sync design, roadmap
-  source/                      the original .docx
-public/symbol-library.png      the symbol sheet from the guide
+  app/          routes + layout (sidebar, top bar with the sync / shared-tracker status)
+  pages/        Dashboard, Daily, Projects, ProjectDetail, Notes, TimeLog, Files, Inbox, Reference, Team, Tools,
+                Connections, Settings, SignIn
+  components/   UI primitives, BabySteps, PrintsTab, PeopleCard, CalendarCard, NoteList, TimeTable, SyncButton, Toast
+  store/        store.ts (local-first store, CRUD, import/export, migrations) · seed.ts (built-in rows)
+  lib/
+    claude/runtime.ts   typed access to claude.ai's window.claude capabilities
+    cloud.ts            shared-store sync engine (claude.ai mode)
+    connectors.ts       Drive / Gmail / Calendar through the viewer's claude.ai connectors
+    aiAnalysis.ts       Analyze with Claude
+    nextSteps.ts        the next-baby-steps list · guidance.ts (setup checklist, plan-production step)
+    roles.ts · auth.tsx · google.ts · drive.ts · sync.ts · merge.ts · archive.ts · prints.ts · …
+  data/         guide.ts (Plan Production Guide Rev 5) · fluencePrints.ts · fluenceDrive.ts · company.ts · revision.ts
+docs/           architecture.md · plan-production-guide.md · research-senawave.md · source/
 ```
 
 ## Keeping it current
 
-- New guide revision: update `GUIDE_META` and the tables in `src/data/guide.ts`, replace the .docx under
-  `docs/source/`, regenerate `docs/plan-production-guide.md`.
-- Learned something about the team or company: edit the card in the Team page (stored in your data) or
-  the seed in `src/data/company.ts` / `src/store/seed.ts` for everyone.
+- Built-in rows (Fluence, the team, the welcome note) carry `SEED_REVISION` (`src/data/revision.ts`). Bump it when you
+  change them: on load, rows nobody has edited take the new version once; anything a person changed is left alone.
+- New guide revision: update `src/data/guide.ts` and `docs/`.
 - Data model changes: bump `DATA_VERSION` in `src/lib/types.ts` and extend `migrate()` in `store.ts`.
 
 ## Privacy
 
-Everything stays in your browser and, if you enable it, your own Google Drive. The only external calls are
-to Google (sign-in, Drive) when you use them. No analytics. Licence keys and passwords do not belong in the
-notes fields.
+The tracker talks only to claude.ai (in the shared mode) or Google (when you sign in), and only when you use them. No
+analytics. Everyone a tracker is shared with receives the same page, built-in data included, so keep the seed to work
+details. Licence keys and passwords do not belong in notes.

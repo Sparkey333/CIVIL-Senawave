@@ -2,20 +2,23 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { activityOn, addNote, newNote, useAppData } from '@/store/store';
-import { nextStepFor, openItems, setupChecklist } from '@/lib/guidance';
+import { nextStepFor, openItems } from '@/lib/guidance';
 import { loadSnapshot, recentChanges } from '@/lib/driveFiles';
+import { useSetup } from '@/lib/useSetup';
+import { nextBabySteps, projectSteps } from '@/lib/nextSteps';
+import { BabySteps } from '@/components/BabySteps';
+import { CalendarCard } from '@/components/CalendarCard';
 import { currentPrint, openFindingCount, printsFor } from '@/lib/prints';
 import { FLUENCE_DRIVE_SNAPSHOT } from '@/data/fluenceDrive';
 import { daysUntil, fmtDate, todayIso } from '@/lib/ids';
 import { Badge, Callout, Card, Tabs, useLocalTab } from '@/components/ui';
-import { StatusBadge } from '@/components/StatusBadge';
 import { toast } from '@/components/Toast';
 
 type Tab = 'morning' | 'evening';
 
 export default function Daily() {
   const data = useAppData();
-  const { user, googleConfigured } = useAuth();
+  const { user } = useAuth();
   const defaultTab: Tab = new Date().getHours() >= (data.settings.eveningHour ?? 16) ? 'evening' : 'morning';
   const [tab, setTab] = useLocalTab<Tab>('daily', defaultTab, ['morning', 'evening']);
   const [day, setDay] = useState(todayIso());
@@ -28,10 +31,22 @@ export default function Daily() {
   const driveRecent = recentChanges(snap, 24);
   const todaysActivity = activityOn(data, day);
   const hoursToday = data.timeEntries.filter((t) => t.date === day).reduce((a, t) => a + t.hours, 0);
-  const setup = setupChecklist(data, { googleSignedIn: user?.mode === 'google', googleConfigured, driveSnapshot: !!loadSnapshot() });
+  const setup = useSetup();
   const setupLeft = setup.filter((s) => !s.done);
+  const steps = nextBabySteps(data, { today: day, setup: [] });
+  const projectNames = Object.fromEntries(data.projects.map((p) => [p.id, p.number || p.name]));
 
-  const eveningText = useMemo(() => buildEveningText(day, active.map((p) => ({ p, next: nextStepFor(p).title })), todaysActivity.map((a) => a.label), hoursToday, items.slice(0, 6).map((n) => `${n.title}${n.dueOn ? ` (due ${fmtDate(n.dueOn)})` : ''}`)), [day, active, todaysActivity, hoursToday, items]);
+  const eveningText = useMemo(
+    () =>
+      buildEveningText(
+        day,
+        active.map((p) => ({ p, next: projectSteps(data, p, day)[0]?.title || nextStepFor(p).title })),
+        todaysActivity.map((a) => a.label),
+        hoursToday,
+        items.slice(0, 6).map((n) => `${n.title}${n.dueOn ? ` (due ${fmtDate(n.dueOn)})` : ''}`),
+      ),
+    [day, data, active, todaysActivity, hoursToday, items],
+  );
 
   const saveLog = () => {
     addNote(newNote(user?.name || 'me', { type: 'note', title: `Evening log — ${fmtDate(day)}`, body: eveningText, tags: ['daily-log'], projectId: active.length === 1 ? active[0].id : null }));
@@ -75,26 +90,10 @@ export default function Daily() {
                   </div>
                 ))}
               </Card>
-              <Card title="One next step per project" subtitle="The first unchecked thing in the guide order. Open it, do it, tick it.">
-                {active.length === 0 && <p className="muted">No active projects.</p>}
-                {active.map((p) => {
-                  const s = nextStepFor(p);
-                  return (
-                    <div key={p.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
-                      <div className="row between">
-                        <Link to={`/projects/${p.id}`} style={{ fontWeight: 600, color: 'var(--fg)' }}><span className="mono muted" style={{ marginRight: 6 }}>{p.number}</span>{p.name}</Link>
-                        <StatusBadge status={p.status} />
-                      </div>
-                      <div style={{ marginTop: 4 }}><span className="next-step-label">Next</span> {s.title}</div>
-                      <div className="muted" style={{ fontSize: 12.5 }}>{s.detail}</div>
-                      <div className="row" style={{ gap: 6, marginTop: 4 }}>
-                        <Link className="btn sm primary" to={s.to}>Open</Link>
-                        {s.guideTo && <Link className="btn sm" to={s.guideTo}>Guide</Link>}
-                      </div>
-                    </div>
-                  );
-                })}
+              <Card title="Next baby steps" subtitle="The same list as the Dashboard, for this day. Do them in order.">
+                <BabySteps steps={steps} limit={8} projectNames={projectNames} />
               </Card>
+              <CalendarCard day={day} />
             </div>
             <div>
               <Card title="Open items" subtitle="Actions, redlines, agency comments, issues — soonest due first." actions={<Link className="btn sm" to="/notes">All notes</Link>}>
@@ -137,7 +136,7 @@ export default function Daily() {
                 )}
               </Card>
               <Card title="Mail" actions={<Link className="btn sm" to="/inbox">Senawave inbox</Link>}>
-                <p className="muted" style={{ marginBottom: 0 }}>Refresh the Senawave inbox for anything new from Jesse or David, then file what matters as a meeting note, decision or action.</p>
+                <p className="muted" style={{ marginBottom: 0 }}>Read the Senawave inbox for anything new from Jesse or David, then file what matters as a meeting note, decision or action with a due date.</p>
               </Card>
             </div>
           </div>

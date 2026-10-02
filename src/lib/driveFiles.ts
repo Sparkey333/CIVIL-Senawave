@@ -7,7 +7,7 @@ const FIELDS = 'nextPageToken,files(id,name,mimeType,modifiedTime,size,webViewLi
 export const FOLDER_MIME = 'application/vnd.google-apps.folder';
 
 /** Folders whose contents are ArcGIS internals, not design files: listed, never descended into. */
-const OPAQUE = /\.gdb$|^\.backups$|^GpMessages$|^Index$|^\.git$/i;
+export const OPAQUE = /\.gdb$|^\.backups$|^GpMessages$|^Index$|^\.git$/i;
 
 export type FileClass = 'drawing' | 'xref' | 'imagery' | 'gis' | 'script' | 'template' | 'doc' | 'backup' | 'other';
 

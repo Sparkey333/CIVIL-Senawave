@@ -347,6 +347,8 @@ export interface AppData {
   updatedAt: string;
   // free-form per-key markdown-ish notes (e.g. "gusto", "bricscad-setup")
   scratch: Record<string, { body: string; updatedAt: string }>;
+  /** The built-in data version this copy has been brought up to (see data/revision). Bookkeeping, never synced. */
+  seedRevision?: string;
 }
 
 export const DATA_VERSION = 4;

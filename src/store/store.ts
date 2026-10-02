@@ -8,7 +8,7 @@ import { DATA_VERSION } from '@/lib/types';
 import { nowIso, uid } from '@/lib/ids';
 import { capActivity, mergeData, purgeTombstones } from '@/lib/merge';
 import { toast } from '@/components/Toast';
-import { FLUENCE_ID, fluenceNotes, fluenceProject, seedData } from './seed';
+import { FLUENCE_ID, SEED_REVISION, fluenceNotes, fluencePermits, fluenceProject, seedData } from './seed';
 import { fluencePrints, fluenceRedlines } from '@/data/fluencePrints';
 
 export const STORAGE_KEY = 'senawave-tracker:v1';
@@ -97,6 +97,7 @@ export function migrate(input: unknown): AppData {
     scratch: data.scratch && typeof data.scratch === 'object' ? data.scratch : {},
     updatedAt: typeof data.updatedAt === 'string' ? data.updatedAt : seed.updatedAt,
     version: DATA_VERSION,
+    seedRevision: typeof data.seedRevision === 'string' ? data.seedRevision : undefined,
   };
   // Older data listed allowed sign-in emails; they become editors. The list is cleaned up and the owner removed from it.
   const legacy = asArray<string>((data.settings as { allowedEmails?: unknown } | undefined)?.allowedEmails);
@@ -113,6 +114,8 @@ export function migrate(input: unknown): AppData {
     merged.projects.unshift(fluenceProject());
     const noteIds = new Set(merged.notes.map((n) => n.id));
     for (const n of fluenceNotes()) if (!noteIds.has(n.id)) merged.notes.push(n);
+    const permitIds = new Set(merged.permits.map((x) => x.id));
+    for (const x of fluencePermits()) if (!permitIds.has(x.id)) merged.permits.push(x);
   }
   // Fluence's two prints and the redlines from the 2 Oct review are added once, the same way. A tombstone counts as present.
   if (!merged.prints.some((x) => fluencePrints().some((f) => f.id === x.id))) {
@@ -120,7 +123,38 @@ export function migrate(input: unknown): AppData {
     const have = new Set(merged.redlines.map((r) => r.id));
     for (const r of fluenceRedlines()) if (!have.has(r.id)) merged.redlines.push(r);
   }
+  if (merged.seedRevision !== SEED_REVISION) upgradeSeedRows(merged, seed);
   return purgeTombstones(merged);
+}
+
+/** A built-in row as it came with the app: no person has edited it (every edit stamps the editor's name). */
+function untouched(row: { updatedBy?: string; deletedAt?: string | null }): boolean {
+  return !row.deletedAt && (!row.updatedBy || row.updatedBy === 'Tracker');
+}
+
+/**
+ * Bring a copy saved by an older build up to the current built-in data, once per revision: built-in rows nobody
+ * edited take the new version (corrections such as the Fluence project number travel this way), and new built-in
+ * rows for live real projects are added. Rows a person changed, and rows they deleted, are left alone.
+ */
+function upgradeSeedRows(merged: AppData, seed: AppData) {
+  const liveReal = new Set(merged.projects.filter((p) => !p.deletedAt && !p.sample).map((p) => p.id));
+  for (const c of ['projects', 'notes', 'permits', 'prints', 'redlines', 'team'] as const) {
+    const list = [...(merged[c] as Stamped[])];
+    const index = new Map(list.map((r, i) => [r.id, i]));
+    for (const row of seed[c] as (Stamped & { projectId?: string | null; tags?: string[]; sample?: boolean })[]) {
+      const i = index.get(row.id);
+      if (i === undefined) {
+        const belongs = c === 'projects' || c === 'team' ? false : row.projectId ? liveReal.has(row.projectId) : !(row.tags || []).includes('sample');
+        if (belongs) list.push(row);
+        continue;
+      }
+      const mine = list[i] as Stamped & { updatedBy?: string };
+      if (untouched(mine) && (mine.updatedAt || '') < (row.updatedAt || '')) list[i] = row;
+    }
+    (merged as unknown as Record<string, Stamped[]>)[c] = list;
+  }
+  merged.seedRevision = SEED_REVISION;
 }
 
 /** Shape check for imported / pulled files: enough to refuse a random JSON without being fussy. */

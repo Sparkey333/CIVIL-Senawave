@@ -98,7 +98,9 @@ describe('backups', () => {
 
 describe('activity log', () => {
   it('records status, workflow, sheet and note changes for the evening log', () => {
-    S.setState(seedData(), { touch: false });
+    const fresh = seedData();
+    fresh.projects = fresh.projects.map((x) => (x.id === 'prj_fluence' ? { ...x, status: 'cad' as const, workflow: {}, sheets: x.sheets.map((s) => ({ ...s, aligned: false })) } : x));
+    S.setState(fresh, { touch: false });
     const p = S.getView().projects.find((x) => x.id === 'prj_fluence')!;
     S.updateProject(p.id, { status: 'qc' });
     S.updateProject(p.id, (x) => ({ workflow: { ...x.workflow, 'start-units': true } }));
@@ -254,7 +256,7 @@ describe('importing archives and files', () => {
     edited.notes.push({ ...edited.notes[0], id: 'note_from_archive', title: 'from the archive' });
     const projectsBefore = S.getView().projects.length;
     const r = S.importJson(JSON.stringify(edited), 'replace');
-    expect(r).toMatchObject({ ok: true, archive: '26-0002', changes: { added: 1, updated: 1 } });
+    expect(r).toMatchObject({ ok: true, archive: '26-0009', changes: { added: 1, updated: 1 } });
     expect(S.getView().projects.length).toBe(projectsBefore);
     expect(S.getView().notes.some((n) => n.id === 'note_from_archive')).toBe(true);
     expect(S.getView().redlines.find((x) => x.id === edited.redlines[0].id)?.status).toBe('addressed');
@@ -266,5 +268,37 @@ describe('importing archives and files', () => {
     other.notes = [...other.notes, { ...other.notes[0], id: 'brand_new_note' }];
     expect(S.importJson(JSON.stringify(other), 'merge')).toMatchObject({ ok: true, changes: { added: 1 } });
     expect(S.importJson(JSON.stringify({ kind: 'senawave-project-archive' }), 'merge')).toMatchObject({ ok: false });
+  });
+});
+
+describe('built-in data upgrade', () => {
+  it('refreshes built-in rows nobody edited, keeps edited ones, and adds new Fluence rows once', () => {
+    const old = seedData();
+    delete old.seedRevision;
+    old.projects = old.projects.map((p) => (p.id === 'prj_fluence' ? { ...p, number: '26-0002', status: 'cad' as const, updatedAt: '2026-10-01T16:45:00.000Z', updatedBy: 'Tracker' } : p));
+    old.notes = old.notes
+      .filter((n) => !['note_fl_action_tcp', 'note_fl_decision_tcp', 'note_fl_meet_1002'].includes(n.id))
+      .map((n) => (n.id === 'note_fl_action_licences' ? { ...n, title: 'my own wording', updatedAt: '2026-10-02T10:00:00.000Z', updatedBy: 'Brandon Barkey' } : n));
+    old.permits = old.permits.filter((x) => x.id !== 'pmt_fluence_ogden');
+    const m = S.migrate(JSON.parse(JSON.stringify(old)));
+    const fl = m.projects.find((p) => p.id === 'prj_fluence')!;
+    expect(fl.number).toBe('26-0009');
+    expect(fl.status).toBe('review');
+    expect(m.notes.find((n) => n.id === 'note_fl_action_licences')?.title).toBe('my own wording');
+    expect(m.notes.some((n) => n.id === 'note_fl_action_tcp')).toBe(true);
+    expect(m.permits.some((x) => x.id === 'pmt_fluence_ogden')).toBe(true);
+    // Once upgraded, a later delete stays deleted even after the tombstone is gone.
+    const again = S.migrate({ ...m, notes: m.notes.filter((n) => n.id !== 'note_fl_action_tcp') });
+    expect(again.notes.some((n) => n.id === 'note_fl_action_tcp')).toBe(false);
+  });
+
+  it('does not bring back the sample project or add rows to a deleted project', () => {
+    const old = seedData();
+    delete old.seedRevision;
+    old.projects = old.projects.filter((p) => !p.sample).map((p) => ({ ...p, deletedAt: '2026-10-02T12:00:00.000Z', updatedBy: 'Brandon Barkey' }));
+    old.notes = old.notes.filter((n) => n.projectId !== 'prj_fluence' && !(n.tags || []).includes('sample') && n.projectId !== 'prj_sample_1');
+    const m = S.migrate(JSON.parse(JSON.stringify(old)));
+    expect(m.projects.some((p) => p.id === 'prj_sample_1')).toBe(false);
+    expect(m.notes.some((n) => n.projectId === 'prj_fluence')).toBe(false);
   });
 });

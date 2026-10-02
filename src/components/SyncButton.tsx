@@ -3,11 +3,35 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { syncWithDrive } from '@/lib/sync';
 import { getState, useAppData } from '@/store/store';
+import { useCloudStatus, type CloudStatus } from '@/lib/cloud';
 import { toast } from './Toast';
+
+/** The shared tracker's state in a few words, for the top bar. */
+export function cloudChip(c: CloudStatus): { text: string; title: string; cls: string } {
+  switch (c.state) {
+    case 'live':
+      return c.pending > 0
+        ? { text: `⟳ Saving ${c.pending}…`, title: 'Saving your changes to the shared tracker', cls: 'chip-busy' }
+        : { text: '● Shared · saved', title: c.lastSavedAt ? `Everything is saved. Last save ${new Date(c.lastSavedAt).toLocaleTimeString()}.` : 'Everything is saved. Changes from the team appear live.', cls: 'chip-ok' };
+    case 'connecting':
+      return { text: '○ Connecting…', title: c.message || 'Connecting to the shared tracker', cls: 'chip-busy' };
+    case 'empty':
+      return { text: '○ Shared tracker empty', title: c.message, cls: 'chip-warn' };
+    case 'readonly':
+      return { text: '◐ View only', title: c.message, cls: 'chip-info' };
+    case 'error':
+      return { text: '⚠ Not saving', title: c.message, cls: 'chip-bad' };
+    case 'stopped':
+      return { text: '⚠ Not shared', title: c.message, cls: 'chip-bad' };
+    default:
+      return { text: '● Local only', title: 'Changes stay in this browser', cls: '' };
+  }
+}
 
 export function SyncButton() {
   const { user, getToken, googleConfigured, canEdit, finishJoin } = useAuth();
   const data = useAppData();
+  const cloud = useCloudStatus();
   const [busy, setBusy] = useState(false);
   const [last, setLast] = useState<string | null>(null);
   const timer = useRef<number | null>(null);
@@ -42,6 +66,14 @@ export function SyncButton() {
   }, [data.updatedAt, data.settings.autoSync, user?.mode]);
 
   if (!user) return null;
+  if (user.mode === 'claude') {
+    const chip = cloudChip(cloud);
+    return (
+      <Link to="/connections" className={`btn sm status-chip ${chip.cls}`} title={chip.title}>
+        {chip.text}
+      </Link>
+    );
+  }
   if (user.mode !== 'google') {
     return (
       <Link to="/settings" className="btn sm" title={googleConfigured ? 'Sign in with Google to sync' : 'Add a Google client id to enable Drive sync'}>
