@@ -1,12 +1,13 @@
 import { useSyncExternalStore } from 'react';
-import type { ActivityEntry, ActivityKind, AppData, EntityKind, Note, Permit, Project, Settings, Sheet, TeamMember, TimeEntry } from '@/lib/types';
-import { PROJECT_STATUSES, PERMIT_STATUSES } from '@/lib/types';
+import type { ActivityEntry, ActivityKind, AppData, EntityKind, Note, Permit, PrintAnalysis, PrintSet, Project, Redline, Settings, Sheet, TeamMember, TimeEntry } from '@/lib/types';
+import { PROJECT_STATUSES, PERMIT_STATUSES, PRINT_STATUSES } from '@/lib/types';
 import { WORKFLOW_STEPS, QC_CHECKLIST } from '@/data/guide';
 import { DATA_VERSION } from '@/lib/types';
 import { nowIso, uid } from '@/lib/ids';
 import { capActivity, mergeData, purgeTombstones } from '@/lib/merge';
 import { toast } from '@/components/Toast';
 import { FLUENCE_ID, fluenceNotes, fluenceProject, seedData } from './seed';
+import { fluencePrints, fluenceRedlines } from '@/data/fluencePrints';
 
 export const STORAGE_KEY = 'senawave-tracker:v1';
 const BACKUP_PREFIX = 'senawave-tracker:backup:';
@@ -45,6 +46,8 @@ function project(d: AppData): AppData {
     projects: live(d.projects),
     notes: live(d.notes),
     permits: live(d.permits),
+    prints: live(d.prints || []),
+    redlines: live(d.redlines || []),
     timeEntries: live(d.timeEntries),
     team: live(d.team),
   };
@@ -84,6 +87,8 @@ export function migrate(input: unknown): AppData {
     projects: asArray<Project>(data.projects),
     notes: asArray<Note>(data.notes),
     permits: asArray<Permit>(data.permits),
+    prints: asArray<PrintSet>(data.prints),
+    redlines: asArray<Redline>(data.redlines),
     timeEntries: asArray<TimeEntry>(data.timeEntries),
     team: asArray<TeamMember>(data.team),
     settings: { ...seed.settings, ...(data.settings || {}) },
@@ -101,6 +106,12 @@ export function migrate(input: unknown): AppData {
     const noteIds = new Set(merged.notes.map((n) => n.id));
     for (const n of fluenceNotes()) if (!noteIds.has(n.id)) merged.notes.push(n);
   }
+  // Fluence's two prints and the redlines from the 2 Oct review are added once, the same way. A tombstone counts as present.
+  if (!merged.prints.some((x) => fluencePrints().some((f) => f.id === x.id))) {
+    merged.prints.push(...fluencePrints());
+    const have = new Set(merged.redlines.map((r) => r.id));
+    for (const r of fluenceRedlines()) if (!have.has(r.id)) merged.redlines.push(r);
+  }
   return purgeTombstones(merged);
 }
 
@@ -109,7 +120,7 @@ export function validateAppData(x: unknown): string | null {
   if (!x || typeof x !== 'object') return 'Not a tracker file (not a JSON object).';
   const d = x as Record<string, unknown>;
   if (!Array.isArray(d.projects)) return 'Not a tracker export (no projects array).';
-  for (const key of ['notes', 'permits', 'timeEntries', 'team'] as const) {
+  for (const key of ['notes', 'permits', 'prints', 'redlines', 'timeEntries', 'team'] as const) {
     if (d[key] !== undefined && !Array.isArray(d[key])) return `Field "${key}" should be a list.`;
   }
   const bad = (d.projects as unknown[]).find((p) => !p || typeof p !== 'object' || typeof (p as { id?: unknown }).id !== 'string');
@@ -379,6 +390,8 @@ export function deleteProject(id: string) {
     ...d,
     projects: patchIn(d.projects, id, { deletedAt: ts }),
     permits: d.permits.map((x) => (x.projectId === id && !x.deletedAt ? stamp(x, { deletedAt: ts }) : x)),
+    prints: (d.prints || []).map((x) => (x.projectId === id && !x.deletedAt ? stamp(x, { deletedAt: ts }) : x)),
+    redlines: (d.redlines || []).map((x) => (x.projectId === id && !x.deletedAt ? stamp(x, { deletedAt: ts }) : x)),
   }));
 }
 
@@ -390,6 +403,8 @@ export function restoreProject(id: string) {
       ...d,
       projects: patchIn(d.projects, id, { deletedAt: null }),
       permits: d.permits.map((x) => (x.projectId === id && x.deletedAt && x.deletedAt === p.deletedAt ? stamp(x, { deletedAt: null }) : x)),
+      prints: (d.prints || []).map((x) => (x.projectId === id && x.deletedAt && x.deletedAt === p.deletedAt ? stamp(x, { deletedAt: null }) : x)),
+      redlines: (d.redlines || []).map((x) => (x.projectId === id && x.deletedAt && x.deletedAt === p.deletedAt ? stamp(x, { deletedAt: null }) : x)),
     };
   });
 }
@@ -487,6 +502,115 @@ export function updatePermit(id: string, patch: Partial<Permit>) {
 
 export function deletePermit(id: string) {
   deleteEntity('permits', id);
+}
+
+// ---------- prints, redlines and AI analysis ----------
+
+export function newPrint(projectId: string, partial: Partial<PrintSet> = {}): PrintSet {
+  const ts = nowIso();
+  return {
+    id: uid('prt'),
+    projectId,
+    label: '',
+    issuedOn: ts.slice(0, 10),
+    by: '',
+    fileUrl: '',
+    sheetCount: null,
+    status: 'draft',
+    summary: '',
+    reviewFileName: '',
+    reviewFileUrl: '',
+    reviewBy: '',
+    reviewOn: '',
+    reviewNote: '',
+    analysis: null,
+    createdAt: ts,
+    updatedAt: ts,
+    updatedBy: actor || undefined,
+    ...partial,
+  };
+}
+
+export function addPrint(p: PrintSet) {
+  update((d) => ({ ...d, prints: [p, ...(d.prints || [])] }));
+  logActivity('print', `Print logged: ${p.label || 'untitled'}`, p.projectId);
+}
+
+export function updatePrint(id: string, patch: Partial<PrintSet>) {
+  const before = state.prints.find((p) => p.id === id);
+  update((d) => ({ ...d, prints: patchIn(d.prints || [], id, patch) }));
+  if (before && patch.status && patch.status !== before.status) logActivity('print', `${before.label}: ${PRINT_STATUSES.find((s) => s.id === patch.status)?.label || patch.status}`, before.projectId);
+}
+
+/** Tombstones the print and the redlines written on it together. */
+export function deletePrint(id: string) {
+  const ts = nowIso();
+  update((d) => ({
+    ...d,
+    prints: patchIn(d.prints || [], id, { deletedAt: ts }),
+    redlines: (d.redlines || []).map((r) => (r.printId === id && !r.deletedAt ? stamp(r, { deletedAt: ts }) : r)),
+  }));
+}
+
+export function restorePrint(id: string) {
+  update((d) => {
+    const p = (d.prints || []).find((x) => x.id === id);
+    if (!p) return d;
+    return {
+      ...d,
+      prints: patchIn(d.prints || [], id, { deletedAt: null }),
+      redlines: (d.redlines || []).map((r) => (r.printId === id && r.deletedAt && r.deletedAt === p.deletedAt ? stamp(r, { deletedAt: null }) : r)),
+    };
+  });
+}
+
+/** Stores the analysis on the print (replacing any earlier one) and logs it. */
+export function setPrintAnalysis(id: string, analysis: PrintAnalysis) {
+  const p = state.prints.find((x) => x.id === id);
+  if (!p) return;
+  update((d) => ({ ...d, prints: patchIn(d.prints || [], id, { analysis }) }));
+  logActivity('print', `AI analysis added to ${p.label} (${analysis.findings.length} findings)`, p.projectId);
+}
+
+export function updateFinding(printId: string, findingId: string, patch: Partial<{ status: 'open' | 'done' | 'dismissed' }>) {
+  const p = state.prints.find((x) => x.id === printId);
+  if (!p || !p.analysis) return;
+  const analysis = { ...p.analysis, findings: p.analysis.findings.map((f) => (f.id === findingId ? { ...f, ...patch } : f)) };
+  update((d) => ({ ...d, prints: patchIn(d.prints || [], printId, { analysis }) }));
+}
+
+export function newRedline(projectId: string, printId: string, partial: Partial<Redline> = {}): Redline {
+  const ts = nowIso();
+  return {
+    id: uid('red'),
+    projectId,
+    printId,
+    sheet: '',
+    kind: 'fix',
+    text: '',
+    by: actor || '',
+    status: 'open',
+    response: '',
+    createdAt: ts,
+    updatedAt: ts,
+    updatedBy: actor || undefined,
+    ...partial,
+  };
+}
+
+export function addRedline(r: Redline) {
+  update((d) => ({ ...d, redlines: [...(d.redlines || []), r] }));
+  logActivity('print', `Redline${r.sheet ? ` on ${r.sheet}` : ''}: ${r.text.slice(0, 70)}`, r.projectId);
+}
+
+export function updateRedline(id: string, patch: Partial<Redline>) {
+  const before = state.redlines.find((r) => r.id === id);
+  update((d) => ({ ...d, redlines: patchIn(d.redlines || [], id, patch) }));
+  if (before && patch.status && patch.status !== before.status) logActivity('print', `Redline ${patch.status}${before.sheet ? ` on ${before.sheet}` : ''}: ${before.text.slice(0, 60)}`, before.projectId);
+}
+
+export function deleteRedline(id: string) {
+  deleteEntity('redlines', id);
 }
 
 // ---------- time ----------
@@ -607,6 +731,8 @@ export function removeSampleData() {
       projects: bury(d.projects, (p) => !!p.sample),
       notes: bury(d.notes, (n) => (!!n.projectId && sampleIds.has(n.projectId)) || n.tags.includes('sample')),
       permits: bury(d.permits, (p) => sampleIds.has(p.projectId)),
+      prints: bury(d.prints || [], (p) => sampleIds.has(p.projectId)),
+      redlines: bury(d.redlines || [], (r) => sampleIds.has(r.projectId)),
       timeEntries: bury(d.timeEntries, (t) => !!t.projectId && sampleIds.has(t.projectId)),
     };
   });

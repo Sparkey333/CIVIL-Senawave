@@ -140,7 +140,9 @@ export function Swatch({ rgb }: { rgb: string }) {
 export function useLocalTab<T extends string>(key: string, initial: T, allowed?: readonly T[]): [T, (t: T) => void] {
   const [tab, setTabState] = useState<T>(() => {
     try {
-      const fromUrl = new URLSearchParams(window.location.search).get('tab') as T | null;
+      // The query string sits after the # when the app is built for hash routing (a published artifact).
+      const hashQuery = window.location.hash.includes('?') ? window.location.hash.split('?')[1] : '';
+      const fromUrl = (new URLSearchParams(window.location.search).get('tab') || new URLSearchParams(hashQuery).get('tab')) as T | null;
       if (fromUrl && (!allowed || allowed.includes(fromUrl))) return fromUrl;
       return (localStorage.getItem(`senawave-tracker:tab:${key}`) as T) || initial;
     } catch {

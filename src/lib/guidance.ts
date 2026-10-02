@@ -64,7 +64,7 @@ export function nextStepFor(p: Project): NextStep {
     };
   const qcOpen = QC_CHECKLIST.filter((q) => !p.qc[q.id]);
   if (qcOpen.length) return { kind: 'qc', title: `QC: ${qcOpen[0].label}`, detail: `${qcOpen.length} checklist items left (guide 11). Run them on the plotted PDF.`, to: `${base}?tab=qc`, guideTo: '/reference/qc' };
-  if (p.status !== 'sealed' && p.status !== 'construction') return { kind: 'review', title: 'Hand to the Engineer of Record', detail: 'Workflow and QC are complete; set status to PE review and log redlines as they come.', to: base };
+  if (p.status !== 'sealed' && p.status !== 'construction') return { kind: 'review', title: 'Hand to the Engineer of Record', detail: 'Workflow and QC are complete; set status to PE review, then log each print and its redlines.', to: `${base}?tab=prints` };
   return { kind: 'done', title: 'Plan set out the door', detail: 'Track permits and construction support here.', to: `${base}?tab=permits` };
 }
 

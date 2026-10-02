@@ -47,6 +47,8 @@ export function mergeData(local: AppData, remote: AppData): AppData {
     projects: mergeById(local.projects, remote.projects || []),
     notes: mergeById(local.notes, remote.notes || []),
     permits: mergeById(local.permits, remote.permits || []),
+    prints: mergeById(local.prints || [], remote.prints || []),
+    redlines: mergeById(local.redlines || [], remote.redlines || []),
     timeEntries: shareTime ? mergeById(local.timeEntries, remote.timeEntries || []) : local.timeEntries,
     team: mergeById(local.team, remote.team || []),
     settings: { ...local.settings, ...newerSettings, ...pickPrivate(local.settings) },
@@ -88,6 +90,8 @@ export function purgeTombstones(data: AppData, now = Date.now(), ttlDays = TOMBS
     projects: keep(data.projects),
     notes: keep(data.notes),
     permits: keep(data.permits),
+    prints: keep(data.prints || []),
+    redlines: keep(data.redlines || []),
     timeEntries: keep(data.timeEntries),
     team: keep(data.team),
   };

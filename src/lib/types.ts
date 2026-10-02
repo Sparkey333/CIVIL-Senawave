@@ -197,9 +197,9 @@ export interface Settings {
 export const PRIVATE_SETTING_KEYS = ['hourlyRate', 'theme', 'autoSync', 'driveFileId', 'driveFolderName', 'driveScope', 'syncTimeEntries', 'driveFilesEnabled', 'gmailEnabled', 'eveningHour'] as const satisfies readonly (keyof Settings)[];
 export type PrivateSettingKey = (typeof PRIVATE_SETTING_KEYS)[number];
 
-export type EntityKind = 'projects' | 'notes' | 'permits' | 'timeEntries' | 'team';
+export type EntityKind = 'projects' | 'notes' | 'permits' | 'timeEntries' | 'team' | 'prints' | 'redlines';
 
-export type ActivityKind = 'status' | 'workflow' | 'qc' | 'sheet' | 'note' | 'permit' | 'time' | 'project' | 'file' | 'email';
+export type ActivityKind = 'status' | 'workflow' | 'qc' | 'sheet' | 'note' | 'permit' | 'time' | 'project' | 'file' | 'email' | 'print';
 
 /** One line of "what happened": feeds the evening log. Capped, synced, newest-wins like everything else. */
 export interface ActivityEntry {
@@ -234,12 +234,97 @@ export interface DriveSnapshot {
   source: 'live' | 'seed';
 }
 
+
+// ---------- prints, reviews and AI analysis ----------
+
+export type PrintStatus = 'draft' | 'in-review' | 'redlined' | 'revised' | 'issued' | 'superseded';
+
+export const PRINT_STATUSES: { id: PrintStatus; label: string; hint: string }[] = [
+  { id: 'draft', label: 'Draft', hint: 'Plotted, nobody has looked yet' },
+  { id: 'in-review', label: 'In review', hint: 'With a reviewer' },
+  { id: 'redlined', label: 'Redlined', hint: 'Markups sent back, waiting on fixes' },
+  { id: 'revised', label: 'Revised', hint: 'Fixes made, next print coming' },
+  { id: 'issued', label: 'Issued', hint: 'Sent to the client or agency' },
+  { id: 'superseded', label: 'Superseded', hint: 'A newer print replaced this one' },
+];
+
+export type FindingSeverity = 'high' | 'medium' | 'low' | 'info';
+export type FindingStatus = 'open' | 'done' | 'dismissed';
+
+/** One thing the AI analysis noticed, with what to do about it. */
+export interface AnalysisFinding {
+  id: string;
+  severity: FindingSeverity;
+  sheet: string; // "NOTES01", "PLAN-01", "All sheets"
+  issue: string;
+  recommendation: string;
+  status: FindingStatus;
+}
+
+export interface PrintAnalysis {
+  summary: string;
+  /** What is different from the previous print. */
+  changes: string[];
+  findings: AnalysisFinding[];
+  /** What the analysis was based on, and what it could not see. Always shown with the result. */
+  basis: string;
+  by: string; // "Claude"
+  at: string; // ISO
+}
+
+/** One issued PDF of the plan set (a "print"): what it is, where it lives, what was said about it. */
+export interface PrintSet {
+  id: string;
+  deletedAt?: string | null;
+  updatedBy?: string;
+  projectId: string;
+  label: string; // usually the PDF name
+  issuedOn: string; // ISO date the print was made
+  by: string; // who made it
+  fileUrl: string; // Drive link to the PDF
+  sheetCount: number | null;
+  status: PrintStatus;
+  summary: string; // what this print is, in a line or two
+  /** The reviewer's marked-up PDF for this print, if there is one. */
+  reviewFileName: string;
+  reviewFileUrl: string;
+  reviewBy: string;
+  reviewOn: string; // ISO date
+  reviewNote: string;
+  analysis: PrintAnalysis | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type RedlineStatus = 'open' | 'addressed' | 'declined';
+/** fix = do this; check = verify or decide first. */
+export type RedlineKind = 'fix' | 'check';
+
+/** One markup item on a print. */
+export interface Redline {
+  id: string;
+  deletedAt?: string | null;
+  updatedBy?: string;
+  projectId: string;
+  printId: string;
+  sheet: string; // "COVER", "PLAN-01", ...
+  kind: RedlineKind;
+  text: string;
+  by: string; // reviewer
+  status: RedlineStatus;
+  response: string; // what was done, or why not
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AppData {
   version: number;
   activity: ActivityEntry[];
   projects: Project[];
   notes: Note[];
   permits: Permit[];
+  prints: PrintSet[];
+  redlines: Redline[];
   timeEntries: TimeEntry[];
   team: TeamMember[];
   settings: Settings;
@@ -248,4 +333,4 @@ export interface AppData {
   scratch: Record<string, { body: string; updatedAt: string }>;
 }
 
-export const DATA_VERSION = 3;
+export const DATA_VERSION = 4;

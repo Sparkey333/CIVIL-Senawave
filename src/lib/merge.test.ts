@@ -42,3 +42,17 @@ describe('mergeData', () => {
     expect(mergeData(local, remote).settings.ownerName).toBe('Local Owner');
   });
 });
+
+describe('prints and redlines merge', () => {
+  it('merges them by id, newest wins, and keeps a tombstone', () => {
+    const local = seedData();
+    const remote = JSON.parse(JSON.stringify(local)) as typeof local;
+    remote.redlines[0] = { ...remote.redlines[0], status: 'addressed', updatedAt: '2099-01-01T00:00:00.000Z' };
+    remote.prints[0] = { ...remote.prints[0], deletedAt: '2099-01-01T00:00:00.000Z', updatedAt: '2099-01-01T00:00:00.000Z' };
+    remote.redlines.push({ ...remote.redlines[1], id: 'red_remote_only', text: 'from Jesse' });
+    const m = mergeData(local, remote);
+    expect(m.redlines.find((r) => r.id === remote.redlines[0].id)?.status).toBe('addressed');
+    expect(m.redlines.some((r) => r.id === 'red_remote_only')).toBe(true);
+    expect(m.prints.find((p) => p.id === remote.prints[0].id)?.deletedAt).toBeTruthy();
+  });
+});

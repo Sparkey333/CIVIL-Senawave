@@ -327,3 +327,21 @@ table.tbl tr.clickable { cursor: pointer; }
 .next-step-title { font-weight: 600; }
 .symbol-sheet { width: 100%; height: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); background: #fff; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* ---------- prints & reviews ---------- */
+.prints-layout { display: grid; grid-template-columns: minmax(220px, 280px) minmax(0, 1fr); gap: 16px; align-items: start; margin-top: 12px; }
+@media (max-width: 900px) { .prints-layout { grid-template-columns: minmax(0, 1fr); } }
+.prints-list { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.print-pick { display: flex; flex-direction: column; gap: 4px; text-align: left; background: var(--bg-elev, var(--bg)); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; cursor: pointer; color: var(--fg); font: inherit; }
+.print-pick:hover { border-color: var(--accent); }
+.print-pick.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.print-pick-name { font-weight: 600; font-size: 13px; overflow-wrap: anywhere; }
+.prints-detail { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.prints-detail .card { margin: 0; }
+tr.row-done textarea, tr.row-done input { opacity: 0.6; }
+.findings { display: flex; flex-direction: column; gap: 8px; }
+.finding { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.finding-done { opacity: 0.6; }
+.finding-issue { margin-top: 6px; overflow-wrap: anywhere; }
+.finding-rec { margin-top: 4px; color: var(--fg-muted); overflow-wrap: anywhere; }
+.plain-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }

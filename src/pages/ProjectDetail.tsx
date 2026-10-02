@@ -12,16 +12,17 @@ import { NoteComposer, NoteList } from '@/components/NoteList';
 import { TimeTable } from '@/components/TimeTable';
 import { StatusBadge } from '@/components/StatusBadge';
 import { NextStep } from '@/components/NextStep';
+import { PrintsTab } from '@/components/PrintsTab';
 import { toast } from '@/components/Toast';
 
-type Tab = 'overview' | 'sheets' | 'workflow' | 'qc' | 'permits' | 'notes' | 'time';
+type Tab = 'overview' | 'sheets' | 'workflow' | 'qc' | 'prints' | 'permits' | 'notes' | 'time';
 
 export default function ProjectDetail() {
   const { id = '' } = useParams();
   const nav = useNavigate();
   const data = useAppData();
   const project = data.projects.find((p) => p.id === id);
-  const [tab, setTab] = useLocalTab<Tab>('project', 'overview', ['overview', 'sheets', 'workflow', 'qc', 'permits', 'notes', 'time']);
+  const [tab, setTab] = useLocalTab<Tab>('project', 'overview', ['overview', 'sheets', 'workflow', 'qc', 'prints', 'permits', 'notes', 'time']);
 
   if (!project) {
     return (
@@ -33,6 +34,7 @@ export default function ProjectDetail() {
 
   const notesCount = data.notes.filter((n) => n.projectId === project.id && !n.done).length;
   const permitsCount = data.permits.filter((p) => p.projectId === project.id && !['approved', 'closed', 'denied'].includes(p.status)).length;
+  const openRedlines = data.redlines.filter((r) => r.projectId === project.id && r.status === 'open').length;
   const wfDone = WORKFLOW_STEPS.filter((s) => project.workflow[s.id]).length;
   const qcDone = QC_CHECKLIST.filter((s) => project.qc[s.id]).length;
 
@@ -71,6 +73,7 @@ export default function ProjectDetail() {
           { id: 'sheets', label: 'Sheet index', count: project.sheets.length },
           { id: 'workflow', label: 'Workflow', count: wfDone },
           { id: 'qc', label: 'QC checklist', count: qcDone },
+          { id: 'prints', label: 'Prints & reviews', count: openRedlines },
           { id: 'permits', label: 'Permits', count: permitsCount },
           { id: 'notes', label: 'Notes', count: notesCount },
           { id: 'time', label: 'Time' },
@@ -91,6 +94,7 @@ export default function ProjectDetail() {
       {tab === 'sheets' && <Sheets project={project} />}
       {tab === 'workflow' && <Workflow project={project} />}
       {tab === 'qc' && <Qc project={project} />}
+      {tab === 'prints' && <PrintsTab project={project} prints={data.prints} redlines={data.redlines} />}
       {tab === 'permits' && <Permits project={project} permits={data.permits.filter((p) => p.projectId === project.id)} />}
       {tab === 'notes' && (
         <>

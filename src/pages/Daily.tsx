@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/auth';
 import { activityOn, addNote, newNote, useAppData } from '@/store/store';
 import { nextStepFor, openItems, setupChecklist } from '@/lib/guidance';
 import { loadSnapshot, recentChanges } from '@/lib/driveFiles';
+import { currentPrint, openFindingCount, printsFor } from '@/lib/prints';
 import { FLUENCE_DRIVE_SNAPSHOT } from '@/data/fluenceDrive';
 import { daysUntil, fmtDate, todayIso } from '@/lib/ids';
 import { Badge, Callout, Card, Tabs, useLocalTab } from '@/components/ui';
@@ -110,6 +111,23 @@ export default function Daily() {
                     })}
                   </ul>
                 )}
+              </Card>
+              <Card title="Prints and redlines" subtitle="Latest print per project, what is still open on it.">
+                {active.every((p) => printsFor(data.prints, p.id).length === 0) ? <p className="muted">No prints logged yet. Log one from a project's Prints &amp; reviews tab.</p> : active.map((p) => {
+                  const cur = currentPrint(printsFor(data.prints, p.id));
+                  if (!cur) return null;
+                  const open = data.redlines.filter((r) => r.printId === cur.id && r.status === 'open');
+                  return (
+                    <div key={p.id} style={{ padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+                      <div><Link to={`/projects/${p.id}?tab=prints`} style={{ fontWeight: 600, color: 'var(--fg)' }}>{cur.label}</Link></div>
+                      <div className="muted" style={{ fontSize: 12.5 }}>
+                        {open.length} open redline{open.length === 1 ? '' : 's'}
+                        {cur.analysis ? ` · ${openFindingCount(cur.analysis)} open AI note${openFindingCount(cur.analysis) === 1 ? '' : 's'}` : ' · no AI analysis yet'}
+                      </div>
+                      {open.slice(0, 3).map((r) => <div key={r.id} className="faint" style={{ fontSize: 12 }}>• {r.sheet ? `${r.sheet}: ` : ''}{r.text.slice(0, 80)}</div>)}
+                    </div>
+                  );
+                })}
               </Card>
               <Card title="Drive: changed in the last 24 h" actions={<Link className="btn sm" to="/files">Files</Link>}>
                 {driveRecent.length === 0 ? <p className="muted">No file changes in the Design folder snapshot. Refresh it on the Files page.</p> : (

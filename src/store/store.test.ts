@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import * as S from './store';
 import { seedData } from './seed';
+import { parseAnalysis } from '@/lib/prints';
+import { DATA_VERSION } from '@/lib/types';
 
 beforeEach(() => {
   localStorage.clear();
@@ -64,7 +66,7 @@ describe('import validation and migration', () => {
     expect(m.settings.ownerName).toBe('X');
     expect(m.settings.syncTimeEntries).toBe(true);
     expect(m.team.length).toBe(4);
-    expect(m.version).toBe(3);
+    expect(m.version).toBe(DATA_VERSION);
   });
 
   it('applyRemote throws on a broken Drive file instead of merging it', () => {
@@ -119,5 +121,83 @@ describe('activity log', () => {
     const m = S.migrate(deleted);
     expect(m.projects.filter((p) => p.id === 'prj_fluence').length).toBe(1);
     expect(m.projects[0].deletedAt).toBeTruthy();
+  });
+});
+
+describe('prints, redlines and analysis', () => {
+  it('seeds Fluence with two prints, 13 open redlines and an analysis on the latest print', () => {
+    const v = S.getView();
+    expect(v.prints.filter((p) => p.projectId === 'prj_fluence')).toHaveLength(2);
+    expect(v.redlines.filter((r) => r.status === 'open')).toHaveLength(13);
+    expect(v.prints.find((p) => p.status === 'redlined')?.analysis?.findings.length).toBeGreaterThan(5);
+  });
+
+  it('adds a print and a redline, logs them for the evening log, and tracks status changes', () => {
+    const p = S.newPrint('prj_fluence', { label: '2026-10-02_Fluence_3.pdf' });
+    S.addPrint(p);
+    const r = S.newRedline('prj_fluence', p.id, { sheet: 'COVER', text: 'Add seal block' });
+    S.addRedline(r);
+    S.updateRedline(r.id, { status: 'addressed', response: 'Done in print 3' });
+    S.updatePrint(p.id, { status: 'issued' });
+    const labels = S.getView().activity.map((a) => a.label);
+    expect(labels.some((l) => l.startsWith('Print logged: 2026-10-02_Fluence_3.pdf'))).toBe(true);
+    expect(labels.some((l) => l.includes('Redline on COVER: Add seal block'))).toBe(true);
+    expect(labels.some((l) => l.includes('Redline addressed on COVER'))).toBe(true);
+    expect(labels.some((l) => l.includes('Issued'))).toBe(true);
+    expect(S.getView().redlines.find((x) => x.id === r.id)).toMatchObject({ status: 'addressed', response: 'Done in print 3' });
+  });
+
+  it('deleting a print buries its redlines and undo brings them back; other prints keep theirs', () => {
+    const v1 = 'prt_fluence_2026-10-01_v1';
+    const v2 = 'prt_fluence_2026-10-01_v2';
+    S.addRedline(S.newRedline('prj_fluence', v1, { text: 'old note' }));
+    S.deletePrint(v2);
+    expect(S.getView().prints.some((p) => p.id === v2)).toBe(false);
+    expect(S.getView().redlines.filter((r) => r.printId === v2)).toEqual([]);
+    expect(S.getView().redlines.filter((r) => r.printId === v1)).toHaveLength(1);
+    S.restorePrint(v2);
+    expect(S.getView().prints.some((p) => p.id === v2)).toBe(true);
+    expect(S.getView().redlines.filter((r) => r.printId === v2)).toHaveLength(13);
+  });
+
+  it('deleting a project buries its prints and redlines, restoring brings them back', () => {
+    S.deleteProject('prj_fluence');
+    expect(S.getView().prints.filter((p) => p.projectId === 'prj_fluence')).toEqual([]);
+    expect(S.getView().redlines.filter((r) => r.projectId === 'prj_fluence')).toEqual([]);
+    S.restoreProject('prj_fluence');
+    expect(S.getView().prints.filter((p) => p.projectId === 'prj_fluence')).toHaveLength(2);
+    expect(S.getView().redlines.filter((r) => r.projectId === 'prj_fluence')).toHaveLength(13);
+  });
+
+  it('stores a pasted analysis, lets findings be ticked off, and keeps the rest', () => {
+    const id = 'prt_fluence_2026-10-01_v1';
+    const parsed = parseAnalysis(JSON.stringify({ summary: 'ok', changes: [], findings: [{ severity: 'low', issue: 'a' }, { severity: 'high', issue: 'b' }], basis: 'text only' }));
+    if (!parsed.ok) throw new Error(parsed.error);
+    S.setPrintAnalysis(id, parsed.analysis);
+    const a = S.getView().prints.find((p) => p.id === id)!.analysis!;
+    expect(a.findings).toHaveLength(2);
+    S.updateFinding(id, a.findings[0].id, { status: 'done' });
+    const after = S.getView().prints.find((p) => p.id === id)!.analysis!;
+    expect(after.findings.map((f) => f.status)).toEqual(['done', 'open']);
+    expect(S.getView().activity.some((x) => x.label.includes('AI analysis added'))).toBe(true);
+  });
+
+  it('adds the Fluence prints once to older data, and not again after they were deleted', () => {
+    const old = { ...seedData(), prints: [], redlines: [] };
+    const m = S.migrate(old);
+    expect(m.prints).toHaveLength(2);
+    expect(m.redlines).toHaveLength(13);
+    const deleted = { ...seedData(), prints: seedData().prints.map((p) => ({ ...p, deletedAt: new Date().toISOString() })), redlines: [] };
+    const m2 = S.migrate(deleted);
+    expect(m2.prints).toHaveLength(2);
+    expect(m2.redlines).toHaveLength(0);
+  });
+
+  it('survives data saved by an older build that has no prints or redlines at all', () => {
+    const legacy = { ...seedData() } as Record<string, unknown>;
+    delete legacy.prints;
+    delete legacy.redlines;
+    expect(S.validateAppData(legacy)).toBeNull();
+    expect(() => S.applyRemote(legacy)).not.toThrow();
   });
 });

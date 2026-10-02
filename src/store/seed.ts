@@ -2,6 +2,7 @@ import type { AppData, Note, Permit, Project, Settings, Sheet, TeamMember, TimeE
 import { DATA_VERSION } from '@/lib/types';
 import { COMPANY } from '@/data/company';
 import { DESIGN_FOLDER_URL, FLUENCE_FOLDER_URL } from '@/data/fluenceDrive';
+import { fluencePrints, fluenceRedlines } from '@/data/fluencePrints';
 
 const T0 = '2026-09-29T12:00:00.000Z';
 
@@ -283,6 +284,8 @@ export function seedData(): AppData {
     projects: [fluenceProject(), sampleProject()],
     notes: [...fluenceNotes(), ...sampleNotes()],
     permits: samplePermits(),
+    prints: fluencePrints(),
+    redlines: fluenceRedlines(),
     timeEntries: sampleTime(),
     team: seedTeam(),
     settings: defaultSettings(),
