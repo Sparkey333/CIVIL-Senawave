@@ -16,6 +16,7 @@ import Team from '@/pages/Team';
 import Tools from '@/pages/Tools';
 import Settings from '@/pages/Settings';
 import TimeLog from '@/pages/TimeLog';
+import Timecards from '@/pages/Timecards';
 import Files from '@/pages/Files';
 import Inbox from '@/pages/Inbox';
 import Daily from '@/pages/Daily';
@@ -87,6 +88,7 @@ export default function App() {
         <Route path="projects/:id" element={<ProjectDetail />} />
         <Route path="notes" element={<Notes />} />
         <Route path="time" element={<TimeLog />} />
+        <Route path="timecards" element={<Timecards />} />
         <Route path="reference" element={<Reference />} />
         <Route path="reference/:tab" element={<Reference />} />
         <Route path="team" element={<Team />} />

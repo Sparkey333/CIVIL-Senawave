@@ -41,6 +41,11 @@ export function defaultSettings(): Settings {
     driveFilesEnabled: false,
     gmailEnabled: false,
     eveningHour: 16,
+    timecardTo: 'david@senawave.com',
+    timecardToName: 'Dave',
+    payStatus: 'contract-1099',
+    payMethod: 'ACH',
+    payChecklist: {},
   };
 }
 

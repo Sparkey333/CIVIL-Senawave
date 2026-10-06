@@ -10,6 +10,7 @@ const NAV = [
   { to: '/daily', label: 'Daily brief & log', ico: '☀' },
   { to: '/projects', label: 'Projects', ico: '▤' },
   { to: '/notes', label: 'Notes & log', ico: '✎' },
+  { to: '/timecards', label: 'Timecards', ico: '▦' },
   { to: '/time', label: 'Time log', ico: '◷' },
   { to: '/files', label: 'Files (Drive)', ico: '▣' },
   { to: '/inbox', label: 'Senawave inbox', ico: '✉' },

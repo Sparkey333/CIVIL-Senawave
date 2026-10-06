@@ -148,6 +148,10 @@ export interface TimeEntry {
   description: string;
   billable: boolean;
   invoiced: boolean;
+  /** When the weekly timecard holding this entry was sent to the payer (Timecards page). */
+  sentAt?: string | null;
+  /** When that timecard was marked paid. */
+  paidAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -204,13 +208,28 @@ export interface Settings {
   gmailEnabled: boolean;
   /** Hour (0-23, local) the Daily page switches from morning brief to evening log. */
   eveningHour: number;
+  /** Who weekly timecards go to (Timecards page). */
+  timecardTo: string;
+  timecardToName: string;
+  /** Pay & tax setup on the Timecards page: your own record, kept on this device. */
+  payStatus: PayStatus;
+  payMethod: PayMethod;
+  payChecklist: Record<string, boolean>;
 }
+
+export const PAY_STATUSES = [
+  { id: 'contract-1099', label: 'Contract (1099)' },
+  { id: 'employee-w2', label: 'Employee (W-2)' },
+] as const;
+export type PayStatus = (typeof PAY_STATUSES)[number]['id'];
+export const PAY_METHODS = ['ACH', 'Wire', 'Check', 'Gusto', 'Other'] as const;
+export type PayMethod = (typeof PAY_METHODS)[number];
 
 /**
  * Settings that stay on this device and are never written to the Drive file or an export:
  * your rate, how this browser looks, and where this device syncs from.
  */
-export const PRIVATE_SETTING_KEYS = ['hourlyRate', 'theme', 'autoSync', 'driveFileId', 'driveFolderName', 'driveScope', 'syncTimeEntries', 'driveFilesEnabled', 'gmailEnabled', 'eveningHour'] as const satisfies readonly (keyof Settings)[];
+export const PRIVATE_SETTING_KEYS = ['hourlyRate', 'theme', 'autoSync', 'driveFileId', 'driveFolderName', 'driveScope', 'syncTimeEntries', 'driveFilesEnabled', 'gmailEnabled', 'eveningHour', 'timecardTo', 'timecardToName', 'payStatus', 'payMethod', 'payChecklist'] as const satisfies readonly (keyof Settings)[];
 export type PrivateSettingKey = (typeof PRIVATE_SETTING_KEYS)[number];
 
 export type EntityKind = 'projects' | 'notes' | 'permits' | 'timeEntries' | 'team' | 'prints' | 'redlines';
