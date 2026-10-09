@@ -17,6 +17,7 @@ import Tools from '@/pages/Tools';
 import Settings from '@/pages/Settings';
 import TimeLog from '@/pages/TimeLog';
 import Timecards from '@/pages/Timecards';
+import PeStamp from '@/pages/PeStamp';
 import Files from '@/pages/Files';
 import Inbox from '@/pages/Inbox';
 import Daily from '@/pages/Daily';
@@ -91,6 +92,7 @@ export default function App() {
         <Route path="timecards" element={<Timecards />} />
         <Route path="reference" element={<Reference />} />
         <Route path="reference/:tab" element={<Reference />} />
+        <Route path="pe-stamp" element={<PeStamp />} />
         <Route path="team" element={<Team />} />
         <Route path="tools" element={<Tools />} />
         <Route path="connections" element={<Connections />} />

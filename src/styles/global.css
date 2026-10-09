@@ -449,3 +449,23 @@ span.status-chip { padding: 2px 9px; border-radius: 999px; background: var(--bg-
   .tc-row .tc-link { grid-column: 3; justify-self: end; }
   .tc-hist th:nth-child(3), .tc-hist td:nth-child(3) { display: none; }
 }
+
+/* ---------- PE stamp ---------- */
+.pe-grid { margin-top: 16px; align-items: start; }
+.pe-dl { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 8px 14px; margin: 0; }
+.pe-dl dt { font-weight: 650; font-size: 12.5px; color: var(--fg-muted); }
+.pe-dl dd { margin: 0; }
+.pe-dl ul, .pe-links, .pe-steps { margin: 0; padding-left: 18px; }
+.pe-dl li, .pe-links li, .pe-steps li { margin: 2px 0 6px; }
+.pe-layout { margin: 0; text-align: center; }
+.pe-layout svg { width: min(280px, 100%); height: auto; }
+.pe-ring { fill: none; stroke: var(--fg); stroke-width: 2; }
+.pe-ring.thin { stroke-width: 1; }
+.pe-arc { font: 700 10px var(--font); letter-spacing: 0.12em; fill: var(--fg); }
+.pe-centre { font: 700 11px var(--font); fill: var(--fg); text-anchor: middle; }
+.pe-centre.small { font-size: 8.5px; font-weight: 600; }
+.pe-sample { font: 800 22px var(--font); fill: var(--accent); opacity: 0.22; text-anchor: middle; letter-spacing: 0.2em; }
+.pe-dim { stroke: var(--fg-muted); stroke-width: 0.8; marker-start: none; }
+.pe-dimtext { font: 8px var(--font); fill: var(--fg-muted); text-anchor: middle; }
+.pe-mine img { width: 180px; height: 180px; object-fit: contain; background: #fff; border: 1px solid var(--border); border-radius: var(--radius-sm); display: block; margin-bottom: 8px; }
+@media (max-width: 860px) { .pe-dl { grid-template-columns: 1fr; } .pe-dl dt { margin-top: 6px; } }

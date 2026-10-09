@@ -17,6 +17,7 @@ const NAV = [
 ];
 const NAV2 = [
   { to: '/reference', label: 'Plan Production Guide', ico: '§' },
+  { to: '/pe-stamp', label: 'PE stamp', ico: '◉' },
   { to: '/team', label: 'Team & company', ico: '⚇' },
   { to: '/tools', label: 'Tools & integrations', ico: '⚙' },
   { to: '/connections', label: 'Connections', ico: '⇄' },
@@ -32,6 +33,7 @@ const TITLES: Record<string, string> = {
   '/files': 'Files — Senawave Design folder',
   '/inbox': 'Senawave inbox (read-only)',
   '/reference': 'Plan Production Guide — Rev 5',
+  '/pe-stamp': 'PE stamp — Utah and Colorado seal rules',
   '/team': 'Team & company',
   '/tools': 'Tools & integrations',
   '/connections': 'Connections',

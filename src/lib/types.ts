@@ -215,6 +215,8 @@ export interface Settings {
   payStatus: PayStatus;
   payMethod: PayMethod;
   payChecklist: Record<string, boolean>;
+  /** Your PE licenses for the PE stamp page (number and expiry). Kept with your private settings. */
+  peLicenses: { state: string; number: string; expires: string }[];
 }
 
 export const PAY_STATUSES = [
@@ -229,7 +231,7 @@ export type PayMethod = (typeof PAY_METHODS)[number];
  * Settings that stay on this device and are never written to the Drive file or an export:
  * your rate, how this browser looks, and where this device syncs from.
  */
-export const PRIVATE_SETTING_KEYS = ['hourlyRate', 'theme', 'autoSync', 'driveFileId', 'driveFolderName', 'driveScope', 'syncTimeEntries', 'driveFilesEnabled', 'gmailEnabled', 'eveningHour', 'timecardTo', 'timecardToName', 'payStatus', 'payMethod', 'payChecklist'] as const satisfies readonly (keyof Settings)[];
+export const PRIVATE_SETTING_KEYS = ['hourlyRate', 'theme', 'autoSync', 'driveFileId', 'driveFolderName', 'driveScope', 'syncTimeEntries', 'driveFilesEnabled', 'gmailEnabled', 'eveningHour', 'timecardTo', 'timecardToName', 'payStatus', 'payMethod', 'payChecklist', 'peLicenses'] as const satisfies readonly (keyof Settings)[];
 export type PrivateSettingKey = (typeof PRIVATE_SETTING_KEYS)[number];
 
 export type EntityKind = 'projects' | 'notes' | 'permits' | 'timeEntries' | 'team' | 'prints' | 'redlines';

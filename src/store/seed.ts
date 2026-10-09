@@ -1,4 +1,5 @@
 import type { AppData, Note, Permit, Project, Settings, Sheet, TeamMember, TimeEntry } from '@/lib/types';
+import { DEFAULT_PE_LICENSES } from '@/data/peStamp';
 import { DATA_VERSION } from '@/lib/types';
 import { COMPANY } from '@/data/company';
 import { DESIGN_FOLDER_URL, FLUENCE_FOLDER_URL } from '@/data/fluenceDrive';
@@ -46,6 +47,7 @@ export function defaultSettings(): Settings {
     payStatus: 'contract-1099',
     payMethod: 'ACH',
     payChecklist: {},
+    peLicenses: DEFAULT_PE_LICENSES.map((l) => ({ ...l })),
   };
 }
 
