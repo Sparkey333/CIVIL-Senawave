@@ -1,0 +1,527 @@
+<title>Civil Plan Set Standards</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a drafting sheet. Title-block header, a wide gutter, sections ruled like sheet borders.
+   Existing = screened (muted), proposed = bold ink. Sheet numbers in mono. */
+:root{
+  --paper:#f6f4ee;        /* drafting vellum */
+  --paper-2:#eceae2;      /* screened panel */
+  --ink:#1b2430;          /* bold proposed ink */
+  --ink-2:#4a5565;        /* body text */
+  --screen:#9aa3ad;       /* existing / screened linework */
+  --rule:#cfd4d9;         /* sheet border rules */
+  --accent:#b4451f;       /* red-line markup */
+  --accent-soft:#f3dcd2;
+  --blue:#2b5f8e;         /* cyan-blueprint link ink */
+  --blue-soft:#dbe7f1;
+  --ok:#2f7a4c; --ok-soft:#dcefe2;
+  --warn:#9a6a12; --warn-soft:#f6ead0;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Source Sans 3","Segoe UI",Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono","SFMono-Regular",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#141a21; --paper-2:#1c242d; --ink:#eef1f4; --ink-2:#b7c0ca; --screen:#5e6975; --rule:#2c3640;
+    --accent:#e07a52; --accent-soft:#3a2419; --blue:#7fb2dc; --blue-soft:#1d2f40;
+    --ok:#6fc08f; --ok-soft:#1b3326; --warn:#e2b45a; --warn-soft:#3a2f14; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#141a21; --paper-2:#1c242d; --ink:#eef1f4; --ink-2:#b7c0ca; --screen:#5e6975; --rule:#2c3640;
+  --accent:#e07a52; --accent-soft:#3a2419; --blue:#7fb2dc; --blue-soft:#1d2f40;
+  --ok:#6fc08f; --ok-soft:#1b3326; --warn:#e2b45a; --warn-soft:#3a2f14; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink-2);font-family:var(--body);font-size:16px;line-height:1.55;
+  background-image:linear-gradient(var(--rule) 1px,transparent 1px),linear-gradient(90deg,var(--rule) 1px,transparent 1px);
+  background-size:48px 48px;background-position:center top}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
+a{color:var(--blue);text-decoration-color:color-mix(in srgb,var(--blue) 45%,transparent);text-underline-offset:2px}
+a:hover{text-decoration-color:var(--blue)}
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.sheet{background:var(--paper);border:2px solid var(--ink);box-shadow:inset 0 0 0 1px var(--paper),inset 0 0 0 2px var(--rule);margin-top:24px}
+@media (max-width:640px){.sheet{border-width:1px}}
+
+/* Title block */
+.tb{display:grid;grid-template-columns:1fr auto;border-bottom:2px solid var(--ink)}
+.tb-main{padding:28px 28px 22px;border-right:2px solid var(--ink);min-width:0}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(34px,5vw,58px);line-height:1;letter-spacing:-.005em;color:var(--ink);margin:8px 0 10px;text-wrap:balance}
+.lede{max-width:66ch;font-size:18px;margin:0}
+.tb-side{display:grid;grid-template-rows:repeat(4,auto);font-family:var(--mono);font-size:12px;min-width:220px}
+.tb-side div{padding:8px 14px;border-bottom:1px solid var(--rule)}
+.tb-side div:last-child{border-bottom:0}
+.tb-side b{display:block;font-weight:500;color:var(--ink);font-size:13px;margin-top:2px}
+@media (max-width:760px){.tb{grid-template-columns:1fr}.tb-main{border-right:0;border-bottom:2px solid var(--ink)}.tb-side{grid-template-columns:1fr 1fr;grid-template-rows:auto}}
+
+/* Sticky nav */
+nav.toc{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);border-bottom:1px solid var(--rule);display:flex;gap:4px;overflow-x:auto;padding:6px 12px;scrollbar-width:none}
+nav.toc::-webkit-scrollbar{display:none}
+nav.toc a{font-family:var(--mono);font-size:12px;white-space:nowrap;padding:6px 10px;border-radius:3px;text-decoration:none;color:var(--ink-2)}
+nav.toc a:hover{background:var(--paper-2);color:var(--ink)}
+
+section{padding:36px 28px;border-bottom:1px solid var(--rule)}
+section:last-of-type{border-bottom:0}
+@media (max-width:640px){section,.tb-main{padding-left:16px;padding-right:16px}}
+.sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+.sec-head .num{font-family:var(--mono);font-size:13px;color:var(--accent);letter-spacing:.08em}
+h2{font-family:var(--display);font-weight:600;font-size:clamp(26px,3vw,34px);line-height:1.05;color:var(--ink);margin:0;text-wrap:balance}
+h3{font-family:var(--display);font-weight:600;font-size:20px;color:var(--ink);margin:0 0 6px;text-wrap:balance}
+p{max-width:70ch}
+.muted{color:var(--screen)}
+
+/* Verdict */
+.verdict{display:grid;grid-template-columns:1.1fr .9fr;gap:28px;align-items:start}
+@media (max-width:860px){.verdict{grid-template-columns:1fr}}
+.stamp{display:inline-block;border:3px solid var(--accent);color:var(--accent);font-family:var(--display);font-weight:700;font-size:22px;letter-spacing:.06em;text-transform:uppercase;padding:6px 14px;transform:rotate(-2deg);border-radius:4px;margin-bottom:14px}
+.verdict p.big{font-size:19px;color:var(--ink)}
+.matrix{width:100%;border-collapse:collapse;font-size:14.5px}
+.matrix th,.matrix td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+.matrix th{font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);font-weight:500}
+.pill{display:inline-block;font-family:var(--mono);font-size:11.5px;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.pill.no{background:var(--accent-soft);color:var(--accent)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.opt{background:var(--warn-soft);color:var(--warn)}
+.pill.info{background:var(--blue-soft);color:var(--blue)}
+.tscroll{overflow-x:auto}
+
+/* Legend diagram */
+.legend{border:1px solid var(--rule);background:var(--paper-2);padding:14px 16px;margin-top:18px}
+.legend svg{width:100%;height:auto;display:block;max-width:100%}
+
+/* Evidence cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.card{border:1px solid var(--rule);background:var(--paper);padding:16px 18px;min-width:0}
+.card .src{font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+.card p{margin:0;font-size:15px}
+.card p+p{margin-top:8px}
+
+/* Sheet index builder */
+.builder{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:16px}
+.builder label{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--rule);padding:7px 12px;border-radius:3px;background:var(--paper);cursor:pointer;font-size:14.5px;user-select:none}
+.builder label:has(input:checked){border-color:var(--ink);background:var(--paper-2);color:var(--ink)}
+.builder input{accent-color:var(--accent);margin:0}
+.count{font-family:var(--mono);font-size:13px;color:var(--ink);margin-left:auto}
+.index{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.sh{border:1px solid var(--rule);background:var(--paper);display:grid;grid-template-columns:auto 1fr;min-width:0}
+.sh[hidden]{display:none}
+.sh .no{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--ink);padding:14px 12px;border-right:1px solid var(--rule);writing-mode:vertical-rl;transform:rotate(180deg);text-align:center;background:var(--paper-2)}
+.sh .body{padding:14px 16px;min-width:0}
+.sh h3{font-size:19px}
+.sh .tier{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--screen);margin-bottom:8px}
+.sh ul{margin:0;padding-left:18px;font-size:14.5px}
+.sh li{margin:3px 0}
+.sh .off{margin-top:8px;font-size:13.5px;color:var(--accent)}
+.sh .off b{font-weight:600}
+.sh.opt .no{color:var(--warn)}
+
+/* Rules list */
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px 28px;margin:0;padding:0;list-style:none}
+.rules li{font-size:15px;padding-left:18px;position:relative}
+.rules li::before{content:"";position:absolute;left:0;top:.6em;width:8px;height:2px;background:var(--accent)}
+.rules b{color:var(--ink);font-weight:600}
+
+/* P&P diagram */
+.pp{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+@media (max-width:860px){.pp{grid-template-columns:1fr}}
+.pp svg{width:100%;height:auto;display:block;border:1px solid var(--rule);background:var(--paper)}
+.spec{width:100%;border-collapse:collapse;font-size:14.5px}
+.spec td{padding:8px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+.spec td:first-child{font-family:var(--mono);font-size:12.5px;color:var(--ink);white-space:nowrap;width:34%}
+.spec .n{font-variant-numeric:tabular-nums}
+
+/* Example sets */
+.filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.filters button{font-family:var(--mono);font-size:12px;border:1px solid var(--rule);background:var(--paper);color:var(--ink-2);padding:6px 10px;border-radius:3px;cursor:pointer}
+.filters button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.sets{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.set{border:1px solid var(--rule);background:var(--paper);padding:14px 16px;display:grid;gap:8px;min-width:0}
+.set[hidden]{display:none}
+.set .top{display:flex;justify-content:space-between;gap:8px;align-items:start}
+.set h3{font-size:19px;margin:0}
+.set .meta{font-family:var(--mono);font-size:12px;color:var(--ink-2)}
+.set p{margin:0;font-size:14.5px}
+.set .idx{font-family:var(--mono);font-size:12.5px;color:var(--ink);background:var(--paper-2);padding:8px 10px;border-left:3px solid var(--screen);overflow-wrap:anywhere}
+.set a.open{font-weight:600;text-decoration:none;border-bottom:1px solid var(--blue)}
+.set a.open::after{content:" ↗";font-size:.85em}
+.kind{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:3px;white-space:nowrap}
+.kind.stamped{background:var(--ok-soft);color:var(--ok)}
+.kind.bid{background:var(--blue-soft);color:var(--blue)}
+.kind.permit{background:var(--warn-soft);color:var(--warn)}
+.kind.prelim{background:var(--paper-2);color:var(--ink-2)}
+
+/* Sources */
+details{border:1px solid var(--rule);background:var(--paper);margin-bottom:10px}
+summary{cursor:pointer;padding:12px 16px;font-family:var(--display);font-weight:600;font-size:19px;color:var(--ink);list-style:none;display:flex;justify-content:space-between;align-items:center}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-family:var(--mono);color:var(--accent)}
+details[open] summary::after{content:"–"}
+details ul{margin:0;padding:4px 16px 14px 32px;font-size:14.5px}
+details li{margin:4px 0;overflow-wrap:anywhere}
+
+.note{border-left:3px solid var(--warn);background:var(--warn-soft);padding:12px 16px;font-size:14.5px;color:var(--ink);max-width:none}
+.note b{font-weight:600}
+footer{font-family:var(--mono);font-size:12px;color:var(--ink-2);padding:18px 28px;border-top:2px solid var(--ink);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+@media (prefers-reduced-motion:no-preference){.set,.sh,.card{transition:border-color .15s}.set:hover,.sh:hover,.card:hover{border-color:var(--screen)}}
+</style>
+
+<div class="wrap">
+<div class="sheet">
+
+  <header class="tb">
+    <div class="tb-main">
+      <div class="eyebrow">Senawave Civil · Research Sheet</div>
+      <h1>Civil Site Development Plan Sets</h1>
+      <p class="lede">What a simple, complete, approvable plan-and-profile set looks like, drawn from agency drafting manuals, municipal checklists, and stamped or permit-level sets posted online. Starts with the aerial-imagery question.</p>
+    </div>
+    <div class="tb-side">
+      <div>Project<b>CIVIL-Senawave</b></div>
+      <div>Issue date<b>2026-10-15</b></div>
+      <div>Sources cited<b>60+ public documents</b></div>
+      <div>Example sets<b>16 linked</b></div>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Sections">
+    <a href="#aerial">01 Aerial</a>
+    <a href="#evidence">02 Evidence</a>
+    <a href="#index">03 Sheet index</a>
+    <a href="#profiles">04 Plan &amp; profile</a>
+    <a href="#basics">05 Reviewer basics</a>
+    <a href="#examples">06 Example sets</a>
+    <a href="#sources">07 Sources</a>
+  </nav>
+
+  <!-- 01 AERIAL -->
+  <section id="aerial">
+    <div class="sec-head"><span class="num">01</span><h2>Aerial on existing, proposed, or both?</h2></div>
+    <div class="verdict">
+      <div>
+        <div class="stamp">Neither · survey linework only</div>
+        <p class="big">Keep aerial photography off the Existing Conditions, Demolition, Site, Grading, Utility, and Plan-and-Profile sheets. Put it on the cover vicinity inset and, if a board or neighbor needs context, one standalone exhibit sheet.</p>
+        <p>The construction sheets carry the sealed survey. A photo under that linework introduces a second, unrectified version of "existing" that can disagree with the boundary and topo by several feet, dies on half-size prints, muddies grayscale plots, and goes stale. Every agency standard that addresses the question lands in the same place.</p>
+        <div class="legend" aria-label="Line convention legend">
+          <svg viewBox="0 0 640 150" role="img" aria-labelledby="legtitle">
+            <title id="legtitle">Existing features screened and dashed, proposed features bold and solid, demolition hatched</title>
+            <g font-family="IBM Plex Mono, monospace" font-size="12" fill="var(--ink-2)">
+              <text x="12" y="22">LEGEND</text>
+              <line x1="12" y1="52" x2="140" y2="52" stroke="var(--screen)" stroke-width="1.2" stroke-dasharray="8 5"/>
+              <text x="156" y="56">EXISTING · screened, dashed (plot style, not gray geometry)</text>
+              <line x1="12" y1="84" x2="140" y2="84" stroke="var(--ink)" stroke-width="3"/>
+              <text x="156" y="88">PROPOSED · bold, solid</text>
+              <rect x="12" y="104" width="128" height="22" fill="none" stroke="var(--accent)" stroke-width="1.4"/>
+              <line x1="12" y1="126" x2="34" y2="104" stroke="var(--accent)" stroke-width="1"/>
+              <line x1="34" y1="126" x2="56" y2="104" stroke="var(--accent)" stroke-width="1"/>
+              <line x1="56" y1="126" x2="78" y2="104" stroke="var(--accent)" stroke-width="1"/>
+              <line x1="78" y1="126" x2="100" y2="104" stroke="var(--accent)" stroke-width="1"/>
+              <line x1="100" y1="126" x2="122" y2="104" stroke="var(--accent)" stroke-width="1"/>
+              <text x="156" y="120">DEMOLITION · hatched or heavy dashed, "REMOVE" callout</text>
+            </g>
+          </svg>
+        </div>
+      </div>
+      <div class="tscroll">
+        <table class="matrix">
+          <thead><tr><th>Sheet</th><th>Aerial?</th><th>Treatment</th></tr></thead>
+          <tbody>
+            <tr><td>Cover · vicinity map inset</td><td><span class="pill opt">Optional</span></td><td>Small inset, grayscale OK, site outlined, north arrow</td></tr>
+            <tr><td>Context / Overall Site Exhibit</td><td><span class="pill opt">Optional</span></td><td>Grayscale or faded, footprint overlaid, date and source note, "FOR REFERENCE ONLY · NOT A SURVEY"</td></tr>
+            <tr><td>Existing Conditions / Topo</td><td><span class="pill no">No</span></td><td>Screened survey linework, sealed by the surveyor</td></tr>
+            <tr><td>Demolition</td><td><span class="pill no">No</span></td><td>Screened existing, hatched removals</td></tr>
+            <tr><td>Site · Grading · Utility · ESC</td><td><span class="pill no">No</span></td><td>Screened existing, bold proposed</td></tr>
+            <tr><td>Plan and profile</td><td><span class="pill no">No</span></td><td>Same; clutter kills the profile</td></tr>
+            <tr><td>Offsite drainage area map</td><td><span class="pill info">Sometimes</span></td><td>Grayscale aerial, USGS or LiDAR base is common where the watershed exceeds the survey</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:14px;margin-top:12px">If an aerial does go on an exhibit: xref it, send to back with DRAWORDER, fade it 50 to 70 percent through the plot style or image transparency, keep survey linework on top, and note the capture date and source.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 EVIDENCE -->
+  <section id="evidence">
+    <div class="sec-head"><span class="num">02</span><h2>Where the rule comes from</h2></div>
+    <div class="cards">
+      <div class="card"><div class="src">Caltrans · CADD Users Manual ch. 4</div><p>Raster imagery such as aerial photos is not to be used as background for plan sheets such as layouts, drainage, utilities, or pavement delineation. Aerials belong on dedicated Aerial Identification sheets or a detail sheet that must emphasize one unique location, only where engineering need justifies it.</p><p>The Plans Preparation Manual adds that photos clutter plan sheets and suit preliminary plans better than contract plans, and that any aerial shown must carry its date and source.</p></div>
+      <div class="card"><div class="src">DoD · Civil/Site Development ch. 3</div><p>An aerial photo may stand in for survey data only at the conceptual level, when survey is not yet available, with the photo date noted. Construction-level drawings are survey based.</p></div>
+      <div class="card"><div class="src">Port of Portland · CAD Standards</div><p>Aerial images are not accepted for use as a site plan.</p></div>
+      <div class="card"><div class="src">USACE · Mississippi Valley Division CAD Supplement</div><p>Existing or unchanged features are drawn screened (half-tone) on plan, profile, and section sheets. Any aerials that appear are plotted in grayscale; sheet files plot grayscale only.</p></div>
+      <div class="card"><div class="src">City of Mesa · Engineering CAD Standards</div><p>The aerial is a separate reference file, scaled to the project horizontal datum with the grid-to-ground factor applied. That is the right CAD setup: a toggleable reference, never part of the sheet's base linework.</p></div>
+      <div class="card"><div class="src">Arlington County VA · Site Plan Specifications</div><p>The one jurisdiction found that asks for an aerial: a current orthophoto of the site and surrounding blocks as a context exhibit with the site plan application. An entitlement exhibit, not a construction sheet.</p></div>
+      <div class="card"><div class="src">Philadelphia · ePlan Submission Standards</div><p>Any reference drawing or image must be labeled or watermarked as reference only. Civil existing and proposed sheets carry the C prefix.</p></div>
+      <div class="card"><div class="src">EBMUD · WMATA · San Diego · Arlington CADD</div><p>Site plans show existing features with screened lines and only new work in bold. Existing is dashed, proposed solid. Screening is produced by the plot style table, not by drawing gray geometry.</p></div>
+    </div>
+  </section>
+
+  <!-- 03 SHEET INDEX -->
+  <section id="index">
+    <div class="sec-head"><span class="num">03</span><h2>A simple, complete sheet index</h2></div>
+    <p>Consensus of the Ann Arbor, Denton, Frisco, Lancaster, Wake Forest, Tolleson, Rolesville, Selma, McKinney, and Gilroy checklists and the Bohler-pattern permit sets below. Toggle the project conditions to see which sheets a typical small commercial or multifamily site needs. Numbering follows National CAD Standard sheet types (C-0xx general, C-1xx plans, C-2xx profiles, C-5xx details); the C-101 / C-201 / C-301 firm pattern is equally accepted.</p>
+    <div class="builder" role="group" aria-label="Project conditions">
+      <label><input type="checkbox" id="opt-mains"> Public or long utility mains</label>
+      <label><input type="checkbox" id="opt-bmp"> Pond, detention, or BMPs</label>
+      <label><input type="checkbox" id="opt-busy"> Busy site (separate paving sheet)</label>
+      <label><input type="checkbox" id="opt-demo" checked> Existing structures to remove</label>
+      <label><input type="checkbox" id="opt-other" checked> Landscape and lighting disciplines</label>
+      <span class="count" id="sheet-count"></span>
+    </div>
+    <div class="index" id="sheet-index">
+      <article class="sh" data-core><div class="no">C-001</div><div class="body"><div class="tier">Core</div><h3>Cover Sheet</h3><ul><li>Project name, address, owner, engineer, surveyor</li><li>Vicinity map (aerial inset acceptable here)</li><li>Sheet index in set order, count matches the set</li><li>Site data table: zoning, parcel, area, impervious, parking</li><li>Benchmark and datum statement, utility contacts or 811 note</li><li>Engineer's seal, agency approval block and signature lines</li></ul></div></article>
+      <article class="sh" data-core><div class="no">C-002</div><div class="body"><div class="tier">Core</div><h3>General Notes and Legend</h3><ul><li>General, grading, utility, paving, ESC notes</li><li>Legend of existing (screened) vs proposed (bold) symbols and linetypes</li><li>Abbreviations; jurisdiction's standard notes verbatim where required</li></ul></div></article>
+      <article class="sh" data-core><div class="no">C-100</div><div class="body"><div class="tier">Core</div><h3>Existing Conditions / Topographic Survey</h3><ul><li>Boundary with bearings and distances, easements, adjoiners, benchmarks</li><li>Existing contours and spot grades, trees, structures, pavement</li><li>All existing utilities with rim and invert elevations</li><li>Floodplain and wetland lines; topo to ROW centerline and 50 to 100 ft beyond</li></ul><div class="off"><b>Keep off:</b> any proposed work. Usually the surveyor's sheet and seal.</div></div></article>
+      <article class="sh opt" data-opt="demo"><div class="no">C-101</div><div class="body"><div class="tier">When removing structures</div><h3>Demolition Plan</h3><ul><li>Items to be removed, hatched or heavy dashed, with REMOVE callouts</li><li>Items to remain and protect; tree protection</li><li>Limits of disturbance; utility abandonment and cap notes</li></ul><div class="off"><b>Tip:</b> combine with C-100 on small sites only if it stays legible.</div></div></article>
+      <article class="sh" data-core><div class="no">C-200</div><div class="body"><div class="tier">Core</div><h3>Site Plan (Layout and Dimensioning)</h3><ul><li>Building footprint and FFE; curb and pavement with dimensions and radii</li><li>Parking counts and ADA; sidewalks; setbacks and easements</li><li>Striping, signage, dumpster, light pole locations if civil</li><li>Horizontal control or coordinate table</li></ul><div class="off"><b>Keep off:</b> contours and utilities except where they dictate layout.</div></div></article>
+      <article class="sh" data-core><div class="no">C-300</div><div class="body"><div class="tier">Core</div><h3>Grading and Drainage Plan</h3><ul><li>Existing contours screened, proposed contours bold</li><li>Spot grades at curbs, corners, ADA routes, doors, high and low points</li><li>Storm structures and pipes with size, slope, material; drainage arrows</li><li>Retaining walls with TW/BW; ponds or BMPs with contours and outlet</li></ul><div class="off"><b>Keep off:</b> underground dry utilities (Ann Arbor checklist).</div></div></article>
+      <article class="sh opt" data-opt="bmp"><div class="no">C-301</div><div class="body"><div class="tier">When BMPs are required</div><h3>Stormwater Management Plan and Details</h3><ul><li>Pond or underground detention plan and sections</li><li>Outlet control structure detail</li><li>Drainage area map (grayscale aerial or LiDAR base acceptable offsite)</li></ul></div></article>
+      <article class="sh" data-core><div class="no">C-400</div><div class="body"><div class="tier">Core</div><h3>Utility Plan</h3><ul><li>Water: size, fittings, valves, hydrants, meter, backflow</li><li>Sanitary: manholes, cleanouts, inverts, slope</li><li>Storm shown lightly for conflicts; fire line; dry conduits by reference</li><li>Crossings and separations called out</li></ul></div></article>
+      <article class="sh opt" data-opt="mains"><div class="no">C-401+</div><div class="body"><div class="tier">When mains are public or long</div><h3>Plan and Profile Sheets</h3><ul><li>One per utility run needing stationing: sanitary, storm, water</li><li>Plan over profile on the same sheet, see section 04</li></ul></div></article>
+      <article class="sh" data-core><div class="no">C-500</div><div class="body"><div class="tier">Core</div><h3>Erosion and Sediment Control Plan</h3><ul><li>Perimeter controls, inlet protection, stabilized construction entrance</li><li>Concrete washout, stockpile, phasing notes</li><li>ESC details or standard reference; SWPPP data as required</li></ul></div></article>
+      <article class="sh opt" data-opt="busy"><div class="no">C-600</div><div class="body"><div class="tier">When the site plan is crowded</div><h3>Paving, Signing and Striping</h3><ul><li>Pavement sections by area, joint layout if concrete</li><li>Signs and striping schedule</li></ul></div></article>
+      <article class="sh" data-core><div class="no">C-700</div><div class="body"><div class="tier">Core</div><h3>Site Details</h3><ul><li>Curbs, pavement sections, sidewalk and ADA ramps</li><li>Dumpster pad, signs, bollards</li></ul></div></article>
+      <article class="sh" data-core><div class="no">C-701</div><div class="body"><div class="tier">Core</div><h3>Utility and Storm Details</h3><ul><li>Manholes, inlets, trench, thrust blocks, hydrants, cleanouts</li><li>Cite agency standard detail numbers instead of redrawing where allowed</li></ul></div></article>
+      <article class="sh opt" data-opt="other"><div class="no">L / E</div><div class="body"><div class="tier">Separate disciplines</div><h3>Landscape · Site Lighting</h3><ul><li>L-100 Landscape Plan, L-500 Details (usually a zoning requirement)</li><li>E-100 Site Lighting and Photometrics if required</li></ul></div></article>
+    </div>
+    <h3 style="margin-top:26px">Rules that recur across the checklists</h3>
+    <ul class="rules">
+      <li><b>One purpose per sheet.</b> When a layout gets crowded, move work to another sheet instead of cramming (Caltrans, Rolesville, Ann Arbor).</li>
+      <li><b>Every sheet:</b> north arrow, bar scale, written scale, title block with engineer name, address, license, seal, sheet title and number, revision block.</li>
+      <li><b>Benchmark</b> on grading, utility, and profile sheets; horizontal control ties where the city has monuments (McKinney).</li>
+      <li><b>Existing screened, proposed bold.</b> Set it in the CTB/STB, never by drawing gray lines.</li>
+      <li><b>Index count equals sheet count.</b> Reviewers check it (Rolesville, Gilroy).</li>
+      <li><b>Approval sets are signed and sealed on every sheet.</b> Preliminary sets read "Preliminary, Not for Construction" (Walpole, Bennett).</li>
+    </ul>
+  </section>
+
+  <!-- 04 PLAN AND PROFILE -->
+  <section id="profiles">
+    <div class="sec-head"><span class="num">04</span><h2>Plan and profile conventions</h2></div>
+    <div class="pp">
+      <div>
+        <svg viewBox="0 0 560 420" role="img" aria-labelledby="pptitle">
+          <title id="pptitle">Plan view on the upper half of the sheet, stationed profile directly below with existing grade dashed and proposed grade solid</title>
+          <rect x="1" y="1" width="558" height="418" fill="var(--paper)" stroke="var(--ink)" stroke-width="2"/>
+          <g font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink-2)">
+            <text x="14" y="22">PLAN  1" = 40'</text>
+            <text x="14" y="232">PROFILE  H 1" = 40'  V 1" = 4'</text>
+          </g>
+          <!-- plan -->
+          <line x1="40" y1="120" x2="520" y2="120" stroke="var(--screen)" stroke-width="1" stroke-dasharray="6 4"/>
+          <line x1="40" y1="60" x2="520" y2="60" stroke="var(--screen)" stroke-width="1" stroke-dasharray="6 4"/>
+          <line x1="40" y1="90" x2="520" y2="90" stroke="var(--ink)" stroke-width="3"/>
+          <g fill="var(--paper)" stroke="var(--ink)" stroke-width="2">
+            <circle cx="80" cy="90" r="7"/><circle cx="240" cy="90" r="7"/><circle cx="400" cy="90" r="7"/>
+          </g>
+          <g font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--ink)">
+            <text x="66" y="76">MH-1</text><text x="226" y="76">MH-2</text><text x="386" y="76">MH-3</text>
+            <text x="120" y="108">160 LF 8" PVC @ 0.50%</text><text x="280" y="108">160 LF 8" PVC @ 0.60%</text>
+          </g>
+          <g font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--ink-2)">
+            <text x="60" y="140">0+00</text><text x="220" y="140">1+60</text><text x="380" y="140">3+20</text>
+            <text x="40" y="178" fill="var(--screen)">EX. 12" W (SCREENED)</text>
+          </g>
+          <line x1="40" y1="160" x2="520" y2="160" stroke="var(--screen)" stroke-width="1.2" stroke-dasharray="10 4 2 4"/>
+          <line x1="20" y1="205" x2="540" y2="205" stroke="var(--rule)" stroke-width="1"/>
+          <!-- profile grid -->
+          <g stroke="var(--rule)" stroke-width="1">
+            <line x1="60" y1="250" x2="520" y2="250"/><line x1="60" y1="290" x2="520" y2="290"/><line x1="60" y1="330" x2="520" y2="330"/><line x1="60" y1="370" x2="520" y2="370"/>
+            <line x1="80" y1="245" x2="80" y2="395"/><line x1="240" y1="245" x2="240" y2="395"/><line x1="400" y1="245" x2="400" y2="395"/>
+          </g>
+          <g font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--ink-2)">
+            <text x="30" y="253">104</text><text x="30" y="293">100</text><text x="30" y="333">96</text><text x="30" y="373">92</text>
+            <text x="68" y="408">0+00</text><text x="228" y="408">1+60</text><text x="388" y="408">3+20</text>
+          </g>
+          <!-- existing grade -->
+          <path d="M60 268 C150 262, 220 275, 300 270 S460 258, 520 262" fill="none" stroke="var(--screen)" stroke-width="1.4" stroke-dasharray="7 4"/>
+          <!-- proposed grade -->
+          <path d="M60 272 L300 266 L520 262" fill="none" stroke="var(--ink)" stroke-width="2.2"/>
+          <!-- pipe -->
+          <line x1="80" y1="340" x2="240" y2="348" stroke="var(--ink)" stroke-width="3"/>
+          <line x1="240" y1="348" x2="400" y2="358" stroke="var(--ink)" stroke-width="3"/>
+          <g stroke="var(--ink)" stroke-width="1.6" fill="none">
+            <rect x="74" y="272" width="12" height="70"/><rect x="234" y="266" width="12" height="84"/><rect x="394" y="263" width="12" height="97"/>
+          </g>
+          <!-- crossing -->
+          <circle cx="160" cy="312" r="6" fill="var(--paper)" stroke="var(--screen)" stroke-width="1.4" stroke-dasharray="3 2"/>
+          <g font-family="IBM Plex Mono, monospace" font-size="9" fill="var(--ink)">
+            <text x="92" y="262">RIM 101.2</text><text x="92" y="356">INV 95.9</text>
+            <text x="252" y="258">RIM 101.5</text><text x="252" y="366">INV 95.1</text>
+            <text x="412" y="256">RIM 101.9</text><text x="412" y="376">INV 94.1</text>
+            <text x="150" y="300" fill="var(--screen)">EX 12" W  1.8' CLR</text>
+          </g>
+        </svg>
+      </div>
+      <div class="tscroll">
+        <table class="spec">
+          <tbody>
+            <tr><td>Layout</td><td>Plan view above, profile directly below, on the same sheet, stationed to match (Ann Arbor, Franklin WI).</td></tr>
+            <tr><td>Scales</td><td class="n">1"=40' horizontal with 1"=4' vertical is the common pairing; 1"=20' with 1"=2' where congested (Ann Arbor, Madera, Denton, Salisbury, Palm Springs). Sutter County allows 20/40/50 H with 2/4/5 V. Spartanburg caps sewer at 1"=100' by 1"=10'. Use only the scale the sheet is built for.</td></tr>
+            <tr><td>Grade lines</td><td>Existing grade dashed and screened, proposed finish grade solid, both labeled along the run.</td></tr>
+            <tr><td>Structures</td><td>Station, rim or top, invert in and out at every manhole and inlet. Structure numbers match plan to profile.</td></tr>
+            <tr><td>Pipe labels</td><td>Length, size, material, class, slope, in plan or profile but consistent across the set.</td></tr>
+            <tr><td>Crossings</td><td>Existing and proposed utilities that cross the run are shown and dimensioned for vertical clearance (Denton, Scottsdale).</td></tr>
+            <tr><td>Stationing</td><td class="n">Every 50 or 100 ft; road profiles with centerline elevations at 50 ft and vertical curve elevations at 25 ft (Elk Grove).</td></tr>
+            <tr><td>HGL</td><td>Hydraulic grade line on storm profiles where the agency asks; 100-year depth and capacity under roadways (Scottsdale).</td></tr>
+            <tr><td>Separate profiles</td><td>One profile per utility unless in a common trench (Clinton Township MI).</td></tr>
+            <tr><td>Datum</td><td>Benchmark description and vertical datum on every profile sheet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 REVIEWER BASICS -->
+  <section id="basics">
+    <div class="sec-head"><span class="num">05</span><h2>What reviewers check first</h2></div>
+    <div class="tscroll">
+      <table class="matrix">
+        <thead><tr><th>Item</th><th>Common requirement</th><th>Who says so</th></tr></thead>
+        <tbody>
+          <tr><td>Sheet size</td><td>24x36 most common; 22x34 accepted in places; half-size 11x17 PDF often requested</td><td>Clark County NV, Glendora, Palm Springs, Gig Harbor, Ridgefield</td></tr>
+          <tr><td>Site plan scale</td><td class="n">1"=20' preferred for small sites; no smaller than 1"=30' or 1"=40' in many checklists</td><td>Alexandria VA, Clark County NV, Orange CA, Cherry Hills</td></tr>
+          <tr><td>Text height</td><td class="n">0.1" minimum at full size</td><td>Gig Harbor, Wildomar</td></tr>
+          <tr><td>Line conventions</td><td>Existing screened or dashed; proposed solid bold; demolition hatched</td><td>EBMUD, WMATA, San Diego, Arlington, USACE</td></tr>
+          <tr><td>Title block</td><td>Engineer name, address, license number, seal and signature, project, sheet title and number, date, revision log</td><td>Florida BPE, Selma, Fernley, Pinal County</td></tr>
+          <tr><td>Control</td><td>Benchmarks and horizontal control ties on pertinent sheets</td><td>McKinney, Broadview Heights</td></tr>
+          <tr><td>Submittal</td><td>Single combined PDF, sequential numbering, landscape, flattened; some want half-size sets and CAD</td><td>Frisco, Lancaster OH, Snohomish, Permit Arlington</td></tr>
+          <tr><td>Legend</td><td>On cover or notes sheet covering every symbol used</td><td>Most checklists</td></tr>
+          <tr><td>Approval block</td><td>Agency signature block on cover and often every sheet</td><td>Gilroy, Palm Springs, Chandler</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 06 EXAMPLE SETS -->
+  <section id="examples">
+    <div class="sec-head"><span class="num">06</span><h2>Example sets found online</h2></div>
+    <p>Truly approved and stamped sets mostly live inside permit portals, so the public web gives you three kinds of look-alikes: stamped contract sets posted by public owners, public bid sets, and permit-level review sets attached to planning board agendas. Filter by kind. All open the agency's own PDF.</p>
+    <div class="filters" role="group" aria-label="Filter example sets">
+      <button type="button" data-k="all" aria-pressed="true">All</button>
+      <button type="button" data-k="stamped" aria-pressed="false">Stamped contract</button>
+      <button type="button" data-k="bid" aria-pressed="false">Public bid set</button>
+      <button type="button" data-k="permit" aria-pressed="false">Permit / review set</button>
+      <button type="button" data-k="prelim" aria-pressed="false">Preliminary</button>
+    </div>
+    <div class="sets" id="sets">
+      <article class="set" data-k="stamped"><div class="top"><h3>Lester Park Phase 1, Ogden City UT</h3><span class="kind stamped">Stamped contract</span></div><div class="meta">Public park sitework · posted by owner</div><p>A real stamped construction set released by the city as a contract document. Study its cover, notes, grading, and detail organization.</p><a class="open" href="https://www.ogdencity.gov/DocumentCenter/View/40679/260807-LesterParkPh1-Contract-Stamped" target="_blank" rel="noopener">Open PDF</a></article>
+      <article class="set" data-k="bid"><div class="top"><h3>ITB 4780 Contract Drawings, Ann Arbor MI</h3><span class="kind bid">Public bid set</span></div><div class="meta">Municipal public works</div><p>Municipal utility plan-and-profile conventions from the same city whose checklist sets the 1"=40' by 1"=4' profile standard.</p><a class="open" href="https://www.a2gov.org/media/wfnn5ijt/itb_4780_plans.pdf" target="_blank" rel="noopener">Open PDF</a></article>
+      <article class="set" data-k="permit"><div class="top"><h3>Bohler multifamily set, Pembroke MA</h3><span class="kind permit">Permit set</span></div><div class="meta">Clean firm-pattern index</div><div class="idx">C-101 Cover · C-102 General Notes · C-103 Jurisdictional Notes · C-201 Demolition · C-301 Site · C-401 Grading &amp; Drainage · C-501 Utility · C-801 ESC · C-901–906 Details · L-series Landscape</div><a class="open" href="https://www.pembroke-ma.gov/DocumentCenter/View/7981" target="_blank" rel="noopener">Open PDF</a></article>
+      <article class="set" data-k="permit"><div class="top"><h3>McDonald's site plan (Bohler), Cranston RI</h3><span class="kind permit">Permit set</span></div><div class="meta">Small commercial, 2024</div><p>Same numbering pattern at a one-building commercial scale, the closest analog to a typical small site.</p><a class="open" href="https://www.cranstonri.gov/_resources/common/userfiles/file/DPRC/2024/4.17.24/McDonald's/Site%20Plan.pdf" target="_blank" rel="noopener">Open PDF</a></article>
+      <article class="set" data-k="permit"><div class="top"><h3>Highland hotel plans, Hanover Township NC</h3><span class="kind permit">Permit set</span></div><div class="meta">Commercial hospitality</div><p>Firm-pattern set on a hotel site; compare how C-601 is used (erosion control in some Bohler sets, landscape in others).</p><a class="open" href="https://hanovertwp-nc.org/media/2908/2-h24-23-a-90-highland-hotel-plans.pdf" target="_blank" rel="noopener">Open PDF</a></article>
+      <article class="set" data-k="permit"><div class="top"><h3>4500 Morris Park Dr, Mint Hill NC</h3><span class="kind permit">Permit set</span></div><div class="meta">Eight-sheet small commercial</div><div class="idx">C1.0 Cover · Notes · Existing Conditions · Site · Utility · Grading · Details (to C5.2)</div><a class="open" href="https://cms5.revize.com/revize/minthillnc/Document_Center/Department/Planning/Development%20Activity/ZC23-4%20Site%20Plans.pdf" target="_blank" rel="noopener">Open PDF</a></article>
+      <article class="set" data-k="permit"><div class="top"><h3>Civil permit plans, Winchendon MA</h3><span class="kind permit">Permit set</span></div><div class="meta">Compact New England set, Nov 2022</div><p>Another small permit set for comparing sheet count and notes density.</p><a class="open" href="https://www.townofwinchendon.com/sites/g/files/vyhlif8401/f/events/1_-_winchendon_ma_-_civil_permit_plans_ss_11.08.22.pdf" target="_blank" rel="noopener">Open PDF</a></article>
+      <article class="set" data-k="permit"><div class="top"><h3>Summer Street multifamily (HSH), Walpole MA</h3><span class="kind permit">Permit set</span></div><div class="meta">65 sheets, 2023</div><p>Larger set using C.1, C.2 numbering with "Sheet 1 of 65"; useful for what a big set adds and what you can leave out.</p><a class="open" href="https://www.walpole-ma.gov/sites/g/files/vyhlif12086/f/pages/19097.04_-_site_plan_1_0.pdf" target="_blank" rel="noopener">Open PDF</a></article>
+      <article class="set" data-k="prelim"><div class="top"><h3>Bohler multifamily civil set, Walpole MA</h3><span class="kind prelim">Preliminary</span></div><div class="meta">Review set with index and general notes</div><p>Notes that only approved, signed and sealed plans may be used for construction. Grading sheet is for grading only and points to a separate C-401 drainage plan.</p><a class="open" href="https://www.walpole-ma.gov/sites/g/files/vyhlif12086/f/pages/9_updated_civil_engineering_plan_set_prepared_by_bohler.pdf" target="_blank" rel="noopener">Open PDF</a></article>
+      <article class="set" data-k="permit"><div class="top"><h3>Site plan set, Newton MA</h3><span class="kind permit">Permit set</span></div><div class="meta">Bohler index pattern</div><p>Another instance of the C-101 / C-201 / C-301 family for cross-checking sheet titles.</p><a class="open" href="https://www.newtonma.gov/home/showpublisheddocument/124297/638670046541670000" target="_blank" rel="noopener">Open PDF</a></article>
+      <article class="set" data-k="permit"><div class="top"><h3>Site plan, Methuen MA</h3><span class="kind permit">Permit set</span></div><div class="meta">Municipal review PDF</div><p>Posted with the planning board packet; compare cover sheet data table and approval block.</p><a class="open" href="https://methuen.gov/DocumentCenter/View/1060/Site-Plan-PDF" target="_blank" rel="noopener">Open PDF</a></article>
+      <article class="set" data-k="bid"><div class="top"><h3>OMB bid set MJ4506000006, Delaware</h3><span class="kind bid">Public bid set</span></div><div class="meta">State facilities</div><div class="idx">C-101 Site · C-301 Grading · C-501 Utility</div><a class="open" href="https://bidcondocs.delaware.gov/OMB/OMB-MJ4506000006-SPECS.pdf" target="_blank" rel="noopener">Open PDF</a></article>
+      <article class="set" data-k="bid"><div class="top"><h3>Substation construction documents, El Paso County CO</h3><span class="kind bid">Public bid set</span></div><div class="meta">County procurement</div><div class="idx">C-101 Horizontal Control · C-201 Site · shows numbering is not universal</div><a class="open" href="https://epc-assets.elpasoco.com/wp-content/uploads/sites/2/procurement/Solicitations/1.-Substation-Construction-Documents.pdf" target="_blank" rel="noopener">Open PDF</a></article>
+      <article class="set" data-k="bid"><div class="top"><h3>STEM building bid drawings, Garrett College MD</h3><span class="kind bid">Public bid set</span></div><div class="meta">2017, campus sitework</div><p>Existing/demolition site plan, proposed grading, and ESC sheets in one bid package. Older, so use for format only.</p><a class="open" href="https://www.garrettcollege.edu/images/stem/stem-bid-drawings.pdf" target="_blank" rel="noopener">Open PDF</a></article>
+      <article class="set" data-k="bid"><div class="top"><h3>Outdoor classroom bid set, Monterey Peninsula RPD</h3><span class="kind bid">Public bid set</span></div><div class="meta">Small-site example</div><p>Short set showing how little a simple site needs when the sheets are organized well.</p><a class="open" href="https://www.mprpd.org/files/06e6f60c7/Item0724-6E_ApprvRFBOutdoorClassroom_Attach1.ExhibitA.Drawings.pdf" target="_blank" rel="noopener">Open PDF</a></article>
+      <article class="set" data-k="permit"><div class="top"><h3>Racebrook Solar civil site plan set, CT Siting Council</h3><span class="kind permit">Permit set</span></div><div class="meta">October 2025</div><p>Overall site, layout and materials, grading/drainage/utility sheets for a large-footprint permit submittal.</p><a class="open" href="https://portal.ct.gov/-/media/csc/3_petitions-medialibrary/petitions_medialibrary/mediapetitionnos1601-1700/pe1675/petitionersubmissions/exhibit-n---civil-site-plan-set.pdf" target="_blank" rel="noopener">Open PDF</a></article>
+      <article class="set" data-k="prelim"><div class="top"><h3>SWLRT Civil West Volume 2, Minnesota</h3><span class="kind prelim">60% submittal</span></div><div class="meta">Transit, 2015</div><div class="idx">Plan-and-profile sheets named W1-CIV-PRF-###; site plans W1-CIV-PLN-###</div><a class="open" href="https://www.leg.mn.gov/docs/2015/other/151010/West%20Vol2%20Civil%20Design.pdf" target="_blank" rel="noopener">Open PDF</a></article>
+      <article class="set" data-k="prelim"><div class="top"><h3>Feasibility set, NRC-hosted</h3><span class="kind prelim">Not for construction</span></div><div class="meta">Index pattern reference</div><div class="idx">C-1.0 Existing Conditions &amp; Survey Control · C-1.1 Demolition · C-2.0 General Site Plan</div><a class="open" href="https://www.nrc.gov/docs/ML1321/ML13219A203.pdf" target="_blank" rel="noopener">Open PDF</a></article>
+    </div>
+    <p class="note" style="margin-top:18px"><b>Finding stamped sets in your own area:</b> planning commission and planning board agenda packets attach full civil sets, public works bid pages post stamped contract sets, and some cities keep open plan archives (Raleigh's development plan archive, for one). Links above were collected from search results; the research environment could not open the PDFs directly, so confirm each still resolves before citing it.</p>
+  </section>
+
+  <!-- 07 SOURCES -->
+  <section id="sources">
+    <div class="sec-head"><span class="num">07</span><h2>Sources</h2></div>
+    <details open>
+      <summary>Agency standards and drafting manuals</summary>
+      <ul>
+        <li><a href="https://dot.ca.gov/-/media/dot-media/programs/design/documents/cadd/caddman-ch4-sect1-a11y.pdf" target="_blank" rel="noopener">Caltrans CADD Users Manual, Ch. 4</a> (raster imagery on plan sheets)</li>
+        <li><a href="https://dot.ca.gov/-/media/dot-media/programs/design/documents/cadd/ppm-text-ch2-sect2-4-a11y.pdf" target="_blank" rel="noopener">Caltrans Plans Preparation Manual, Ch. 2 Sect. 2-4</a> (aerial identification sheets, date and source)</li>
+        <li><a href="https://dot.ca.gov/-/media/dot-media/programs/design/documents/cadd/ppm-text-ch2-sect1-a11y.pdf" target="_blank" rel="noopener">Caltrans PPM Ch. 2 Sect. 1</a> and <a href="https://dot.ca.gov/-/media/dot-media/programs/design/documents/cadd/ppm-text-ch2-sect2-5-a11y.pdf" target="_blank" rel="noopener">Sect. 2-5</a> (layout crowding)</li>
+        <li><a href="https://media.defense.gov/2024/May/23/2003471378/-1/-1/0/CHAPTER%203%20-%20CIVIL-20230823%20(002).PDF" target="_blank" rel="noopener">DoD Chapter 3, Civil/Site Development Engineering</a></li>
+        <li><a href="https://www.mvd.usace.army.mil/portals/52/docs/mvd-cad-std-40.pdf" target="_blank" rel="noopener">USACE Mississippi Valley Division A/E/C CAD Standard Supplement</a></li>
+        <li><a href="https://cdn.portofportland.com/eng-specs-gdline/PART%203%20-%20CAD%20STANDARDS.pdf" target="_blank" rel="noopener">Port of Portland CAD Standards Manual</a></li>
+        <li><a href="https://www.mesaaz.gov/files/assets/public/v/1/business-development/engineering/engineering-cad-standards.pdf" target="_blank" rel="noopener">City of Mesa Engineering CAD Standards</a></li>
+        <li><a href="https://www.sandiego.gov/sites/default/files/city_computer_aided_design_and_drafting_cadd_standards_2018_edition.pdf" target="_blank" rel="noopener">City of San Diego CADD Standards 2018</a></li>
+        <li><a href="https://arlingtonva.s3.amazonaws.com/wp-content/uploads/sites/21/2013/12/CADD-Standards-and-Guidelines.pdf" target="_blank" rel="noopener">Arlington County VA CADD Standards</a> and <a href="https://www.arlingtonva.us/files/sharedassets/public/v/4/building/documents/review-processes/administrative-regulation-4.1/site-plan-drawing-specifications-12.20.24.pdf" target="_blank" rel="noopener">Site Plan Drawing Specifications</a></li>
+        <li><a href="https://www.phila.gov/media/20210222130550/P_024_INF_ePlan-Submission-Standard-Fact-Sheet.rev-2.22.21.pdf" target="_blank" rel="noopener">Philadelphia ePlan Submission Standards</a></li>
+        <li><a href="https://www5.ebmud.com/specsinternet/projects/01%20Drafting%20Guidelines/FacHelp/Screened_Lines.htm" target="_blank" rel="noopener">EBMUD Drafting Guidelines, Screened Lines</a></li>
+        <li><a href="https://www.wmata.com/business/procurement/solicitations/documents/WMATA%202014%20CAD%20Standards_Approved.pdf" target="_blank" rel="noopener">WMATA 2014 CAD Standards</a></li>
+        <li><a href="https://www.archtoolbox.com/construction-document-sheet-numbers/" target="_blank" rel="noopener">Archtoolbox, Construction Document Sheet Numbers (NCS)</a> and <a href="https://uh.edu/facilities-planning-construction/vendor-resources/cad-standards/appendix-b---sheet-type.pdf" target="_blank" rel="noopener">University of Houston Sheet Type Designators</a></li>
+        <li><a href="https://www.greshamoregon.gov/globalassets/city-departments/environmental-services/public-works-standards/cad-manual.pdf?id=8897" target="_blank" rel="noopener">Gresham OR CAD Manual</a></li>
+        <li><a href="https://wisconsindot.gov/rdwy/fdm/fd-15-05.pdf" target="_blank" rel="noopener">Wisconsin DOT FDM 15-5</a>, <a href="https://www.mdt.mt.gov/other/webdata/external/esdc/library/Tip-ImportAerialSurveyTIFFsIntoC3D.pdf" target="_blank" rel="noopener">Montana DOT Civil 3D aerial tip</a>, <a href="https://envisioncad.com/civil-3d-tip-adding-aerial-imagery-to-your-drawings/" target="_blank" rel="noopener">Envision CAD aerial imagery tip</a>, <a href="https://forums.autodesk.com/t5/civil-3d-forum/aerial-background-issues/td-p/8687363" target="_blank" rel="noopener">Autodesk Community, aerial background performance</a></li>
+      </ul>
+    </details>
+    <details>
+      <summary>Municipal checklists: sheet lists, scales, profile content</summary>
+      <ul>
+        <li><a href="https://www.a2gov.org/media/riel2xit/civil20construction20plan20checklist20-20final.pdf" target="_blank" rel="noopener">Ann Arbor MI Civil Construction Plan Checklist</a></li>
+        <li><a href="https://umaec.umich.edu/desguide/2.0-Procedures/Civil-Sheet-Set-up-Checklist.pdf" target="_blank" rel="noopener">University of Michigan AEC Civil Sheet Set-up Checklist</a></li>
+        <li><a href="https://www.cityofdenton.com/DocumentCenter/View/479/Civil-Engineering-Plans-Checklist-PDF" target="_blank" rel="noopener">Denton TX Civil Engineering Plans Checklist (Feb 2026)</a></li>
+        <li><a href="https://www.friscotexas.gov/DocumentCenter/View/1363/Checklist-Construction-Plan-PDF" target="_blank" rel="noopener">Frisco TX Construction Plan Checklist</a></li>
+        <li><a href="https://lancasterohio.gov/DocumentCenter/View/1559/Site-Engineering-Requirements?bidId=" target="_blank" rel="noopener">Lancaster OH Site Engineering Requirements</a></li>
+        <li><a href="https://www.wakeforestnc.gov/sites/default/files/uploads/planning/Forms/construction_plans_checklist_jan_2026.pdf" target="_blank" rel="noopener">Wake Forest NC Construction Plans Checklist (Jan 2026)</a></li>
+        <li><a href="https://www.rolesvillenc.gov/sites/default/files/uploads/projects/documents/v1_cid-24-06_2_cid-checklist.pdf" target="_blank" rel="noopener">Rolesville NC Construction Infrastructure Drawings Checklist</a></li>
+        <li><a href="https://www.colonialheightsva.gov/DocumentCenter/View/898/Site-Development-Design-Checklist" target="_blank" rel="noopener">Colonial Heights VA Site Development Design Checklist</a></li>
+        <li><a href="https://www.mckinneytexas.org/DocumentCenter/View/395/Engineering-Development-Plan-Review-Checklist" target="_blank" rel="noopener">McKinney TX Engineering Development Plan Review Checklist</a></li>
+        <li><a href="https://www.tolleson.az.gov/DocumentCenter/View/5700/Civil-Construction-Document-Submittal-Checklist" target="_blank" rel="noopener">Tolleson AZ Civil Construction Document Submittal Checklist</a></li>
+        <li><a href="https://www.cityofgilroy.org/DocumentCenter/View/7709/Minimum-Residential-Plan-Submittal-Guidelines-Handout-2018" target="_blank" rel="noopener">Gilroy CA Minimum Plan Submittal Guidelines</a></li>
+        <li><a href="https://selma-nc.com/wp-content/uploads/2025/07/ZONING-PERMIT-SITE-PLAN-commercial-or-multi-family.pdf" target="_blank" rel="noopener">Selma NC Site Plan Application</a></li>
+        <li><a href="https://www.chandleraz.gov/sites/default/files/documents/imported/UDM_CivilImprovPlanCheck.pdf" target="_blank" rel="noopener">Chandler AZ Civil Improvement Plan Check</a></li>
+        <li><a href="https://www.madera.gov/wp-content/uploads/2016/04/SECTION-27.pdf" target="_blank" rel="noopener">Madera CA Section 27</a>, <a href="https://suttercounty.org/home/showpublisheddocument/2616/637554857479270000" target="_blank" rel="noopener">Sutter County CA improvement plan standards</a>, <a href="https://www.franklinwi.gov/Files/Engineering/ConstructionDesignStandards/Chap2-Updated-Design-Stds-4-7-2021.pdf" target="_blank" rel="noopener">Franklin WI Design Standards Ch. 2</a>, <a href="https://losgatosca.gov/common/modules/documentcenter2/documentview.asp?DID=384" target="_blank" rel="noopener">Los Gatos CA plan standards</a>, <a href="https://www.elkgrovecity.org/sites/default/files/city-files/Departments/Public%20Works/improvement-standards/section-03-020907.pdf" target="_blank" rel="noopener">Elk Grove CA Improvement Standards Sect. 3</a>, <a href="https://dev-codelibrary.amlegal.com/codes/clintontwp/latest/clintontwp_mi/0-0-0-21086" target="_blank" rel="noopener">Clinton Township MI code</a></li>
+        <li><a href="https://salisbury.md/wp-content/uploads/2024/07/As-Built-Checklist-for-Utilities-Public-Infrastructure-July-29-2024.pdf" target="_blank" rel="noopener">Salisbury MD As-Built Checklist</a>, <a href="https://spartanburgwater.org/files/files/Sewer_As-Built_Checklist_rev_7.13.2023.pdf" target="_blank" rel="noopener">Spartanburg Water Sewer As-Built Checklist</a>, <a href="https://ww2.scottsdaleaz.gov/Assets/ScottsdaleAZ/Building/Grading+and+Drainage+Checklist.pdf" target="_blank" rel="noopener">Scottsdale AZ Grading and Drainage Checklist</a>, <a href="https://www.palmspringsca.gov/home/showpublisheddocument/16635/638787464544330000" target="_blank" rel="noopener">Palm Springs CA storm drain checklist</a>, <a href="https://www.sedgwickcounty.org/media/61569/45-volume-3-09-appendix-g.pdf" target="_blank" rel="noopener">Sedgwick County KS storm sewer sheet requirements</a></li>
+        <li><a href="https://files.clarkcountynv.gov/Grading%20Plan%20Review%20Checklist.pdf" target="_blank" rel="noopener">Clark County NV Grading Plan Review Checklist</a>, <a href="https://media.alexandriava.gov/docs-archives/tes/info/grading-plan-checklist-2019-update-final-=1=.pdf" target="_blank" rel="noopener">Alexandria VA Grading Plan Checklist</a>, <a href="https://www.gigharborwa.gov/DocumentCenter/View/2970/Civil-Land-Use-Checklist" target="_blank" rel="noopener">Gig Harbor WA Civil Land Use Checklist</a>, <a href="https://wildomar.gov/DocumentCenter/View/364" target="_blank" rel="noopener">Wildomar CA plan requirements</a>, <a href="https://ridgefieldwa.us/DocumentCenter/View/2508/2024-Engineering-Standards-Volume-1-PDF" target="_blank" rel="noopener">Ridgefield WA Engineering Standards</a>, <a href="https://evogov.s3.amazonaws.com/media/60/media/17106.pdf" target="_blank" rel="noopener">Keizer OR Storm Drainage Standards</a></li>
+        <li><a href="https://www.arlingtonva.us/Government/Programs/Building/Permits/Apply-Online/Guidelines" target="_blank" rel="noopener">Permit Arlington online submission guidelines</a>, <a href="https://www.nps.gov/dscw/del_designdevelopdb.htm" target="_blank" rel="noopener">NPS Design Development deliverables</a>, <a href="https://www.nps.gov/dscw/del_constructiondbb.htm" target="_blank" rel="noopener">NPS Construction Documents deliverables</a></li>
+      </ul>
+    </details>
+    <details>
+      <summary>Industry explainers</summary>
+      <ul>
+        <li><a href="https://rspengineers.com/civil-engineering-blog/whats-included-in-a-civil-site-plan" target="_blank" rel="noopener">RSP Engineers, What's Included in a Civil Site Plan</a></li>
+        <li><a href="https://helonic.com/knowledge-base/how-to-read-civil-drawings" target="_blank" rel="noopener">Helonic, How to Read Civil Drawings</a></li>
+        <li><a href="https://www.siteplancreator.com/blog/can-you-use-google-maps-to-draw-a-site-plan-for-a-permit" target="_blank" rel="noopener">Site Plan Creator, Can You Use Google Maps for a Permit Site Plan</a></li>
+        <li><a href="https://www.raleighnc.gov/development" target="_blank" rel="noopener">City of Raleigh development plan archive</a></li>
+      </ul>
+    </details>
+  </section>
+
+  <footer>
+    <span>CIVIL-Senawave · docs/civil-plan-set-standards.html</span>
+    <span>Local rules control. Pull the reviewing agency's checklist before drafting.</span>
+  </footer>
+</div>
+</div>
+
+<script>
+(function(){
+  // Sheet index builder
+  var opts={mains:'opt-mains',bmp:'opt-bmp',busy:'opt-busy',demo:'opt-demo',other:'opt-other'};
+  var sheets=Array.prototype.slice.call(document.querySelectorAll('#sheet-index .sh'));
+  var countEl=document.getElementById('sheet-count');
+  function refresh(){
+    var n=0;
+    sheets.forEach(function(s){
+      var k=s.getAttribute('data-opt');
+      var show=!k||document.getElementById(opts[k]).checked;
+      s.hidden=!show; if(show) n++;
+    });
+    var est=n; if(document.getElementById('opt-mains').checked) est+=1;
+    countEl.textContent=n+' sheet types · about '+est+'–'+(est+2)+' sheets';
+  }
+  Object.keys(opts).forEach(function(k){
+    var el=document.getElementById(opts[k]);
+    try{var v=localStorage.getItem('cps.'+k); if(v!==null) el.checked=v==='1';}catch(e){}
+    el.addEventListener('change',function(){try{localStorage.setItem('cps.'+k,el.checked?'1':'0');}catch(e){} refresh();});
+  });
+  refresh();
+
+  // Example set filter
+  var btns=document.querySelectorAll('.filters button');
+  var sets=document.querySelectorAll('#sets .set');
+  btns.forEach(function(b){
+    b.addEventListener('click',function(){
+      var k=b.getAttribute('data-k');
+      btns.forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false');});
+      sets.forEach(function(s){s.hidden=!(k==='all'||s.getAttribute('data-k')===k);});
+    });
+  });
+})();
+</script>
