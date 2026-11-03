@@ -120,6 +120,57 @@ export const DEFAULT_PE_LICENSES = [
   { state: 'CO', number: '0062812', expires: '2027-10-31' },
 ];
 
+/** Certification and seal are two different things; a grant office wants both. */
+export const CERT_VS_SEAL = [
+  { term: 'Certification', means: 'Your written professional opinion: what you reviewed, what it covers, what you conclude. It is the content.' },
+  { term: 'Seal (stamp)', means: 'The mark Utah law puts on final engineering work: name, license number, signature and date. It says who is responsible (Utah Code 58-22-602, -603).' },
+  { term: 'Both together', means: 'A certification statement that is signed, sealed and dated is what "PE-certified" or "stamped PDF" means to UBC and NTIA. A seal alone says nothing; a statement alone is not sealed work.' },
+];
+
+/**
+ * Certifying a report or grant package (BEAD) instead of a plan set.
+ * Summarised from the BEAD NOFO, NTIA's PE waiver notice, the Utah Broadband Center draft subgrant agreement
+ * and R156-22-601; check the current text before a submittal.
+ */
+export const BEAD_CERT = {
+  summary: 'One signed, sealed certification page per subgrant project, attached to the final package. Not per location.',
+  rule: [
+    'BEAD NOFO §IV.D.2.c: before the first disbursement the subgrantee submits a network design, diagram, project costs, build-out timeline and milestones, "all certified by a professional engineer, stating that the proposed network can deliver broadband service that meets the requisite performance requirements to all locations served by the Project."',
+    'NTIA waived only the capital investment schedule element; a PE must still certify the rest. The PE may be licensed in any state (NTIA waiver and clarification, March 2024; FAQ).',
+    'Performance to certify: 100/20 Mbps and latency of 100 ms or less to every BEAD location served; build-out and service within four years of the subgrant date.',
+  ],
+  utah: [
+    'Utah Broadband Center: technical materials "certified by a professional engineer"; the draft subgrant agreement wants "Project plans stamped/sealed by a Professional Engineer" before any disbursement, tied to the 10% initial milestone. UBC accepts stamped PDFs.',
+    'Utah Code 58-22-602: a final plan, specification or report prepared by or under a PE must bear the seal when submitted to a client or filed with a public authority. A network design report counts.',
+    'R156-22-601(d): seal, sign and date the cover or title sheet of each original set; later sheets need not be sealed. 58-22-603: seal only work you prepared, supervised, or fully reviewed and corrected.',
+  ],
+  form: [
+    'Seal the cover (title, date, revision, page count: "This report consists of N pages") and the certification page. Signature and date across the face of each seal, date in mm/dd/yy.',
+    'The certification page names the document title, date and revision, the project IDs, what was reviewed, the standard met (100/20 Mbps, ≤100 ms, four years), the basis (whose designs, what you checked), and any exclusion (capital investment schedule; preliminary areas).',
+    'Seal a final document only. A working draft with OPEN items is not sealable; close them or cut them out first. Then certify the PDF digitally and lock it.',
+  ],
+  scope: [
+    'Scope follows the subgrant: "all locations served by the Project" means one certification per project ID. Two subgrants (VAI38, VAI39) need two statements; they can sit in one sealed package.',
+    'Never per location. "All locations" is made auditable by an appendix listing every BSL (FCC Fabric ID) with its assigned splice point, so the sealed package defines what you certified.',
+    'The BEAD certification does not replace permit plan sets. Each build area still needs sealed plan sheets for the city, county or UDOT permit, the way Fluence does.',
+  ],
+  steps: [
+    'Get the final package: every build area designed, every OPEN item closed, the internal checklist removed, a revision date on the cover.',
+    'Check what the statement claims: loss budget per area against the optic datasheet, split ratios, uplink capacity at peak, latency path, the BSL list against the award, the four-year timeline against the execution date.',
+    'Check costs for consistency with the design quantities and unit rates; do not certify a budget that was back-solved to the award amount.',
+    'Write one certification page per project ID; add license number and state; put the seal on the cover and on each certification page; sign and date across the seal.',
+    'Certify the PDF with a certificate-based digital signature, keep the sealed copy, and send only that. Re-issue with a new date if the design or timeline changes.',
+  ],
+  sources: [
+    { label: 'NTIA: Conditional limited waiver and clarification of the PE certification (BEAD)', url: 'https://broadbandusa.ntia.gov/funding-programs/policies-waivers/BEAD_-_Conditional_Limited_Programmatic_Waiver_and_Clarification_of_Professional_Engineer_Certification' },
+    { label: 'NTIA BEAD FAQs (search "professional engineer")', url: 'https://broadbandusa.ntia.gov/sites/default/files/2026-06/BEAD_FAQs_v22.pdf' },
+    { label: 'Utah Broadband Center: draft BIG BEAD subgrant agreement (public comment 2025)', url: 'https://connecting.utah.gov/wp-content/uploads/Public-Comment-BIG-BEAD-Subgrant-Agreement-Draft-2025.pdf' },
+    { label: 'Utah Broadband Center: BEAD Final Proposal (cured)', url: 'https://connecting.utah.gov/wp-content/uploads/Cured-UBO_BEAD-Final-Proposal-1.pdf' },
+    { label: 'Utah Code 58-22-602, documents to be sealed', url: 'https://le.utah.gov/xcode/Title58/Chapter22/58-22-S602.html' },
+    { label: 'Example state templates: Connecticut PE certification; New York PE certification', url: 'https://broadband.ny.gov/pe-certification-template-connectall-deployment-program' },
+  ],
+};
+
 /** Applying the seal to a PDF set: the order that keeps it compliant and secure. */
 export const SEALING_STEPS = [
   'Fix every review comment first. Seal the final set only, never a set marked preliminary.',

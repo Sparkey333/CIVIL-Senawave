@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { SEAL_SPECS, SEALING_STEPS, type SealSpec } from '@/data/peStamp';
+import { BEAD_CERT, CERT_VS_SEAL, SEAL_SPECS, SEALING_STEPS, type SealSpec } from '@/data/peStamp';
 import { updateSettings, useAppData } from '@/store/store';
 import { Card, Callout } from '@/components/ui';
 import { toast } from '@/components/Toast';
@@ -68,7 +68,32 @@ export default function PeStamp() {
       <Card title="Sealing a PDF plan set" subtitle="The order that keeps the set compliant and the seal secure.">
         <ol className="pe-steps">{SEALING_STEPS.map((s) => <li key={s}>{s}</li>)}</ol>
       </Card>
+      <GrantCertification />
     </>
+  );
+}
+
+/** A report or grant package (BEAD) is sealed differently from a plan set: one certification page per project. */
+function GrantCertification() {
+  return (
+    <Card title="Certifying a report or grant package (BEAD)" subtitle={BEAD_CERT.summary}>
+      <dl className="pe-dl">
+        <dt>Certification vs seal</dt>
+        <dd><ul>{CERT_VS_SEAL.map((c) => <li key={c.term}><b>{c.term}:</b> {c.means}</li>)}</ul></dd>
+        <dt>The rule</dt><dd><ul>{BEAD_CERT.rule.map((w) => <li key={w}>{w}</li>)}</ul></dd>
+        <dt>In Utah</dt><dd><ul>{BEAD_CERT.utah.map((w) => <li key={w}>{w}</li>)}</ul></dd>
+        <dt>What to seal</dt><dd><ul>{BEAD_CERT.form.map((w) => <li key={w}>{w}</li>)}</ul></dd>
+        <dt>Per project, not per location</dt><dd><ul>{BEAD_CERT.scope.map((w) => <li key={w}>{w}</li>)}</ul></dd>
+        <dt>Steps</dt><dd><ol className="pe-steps">{BEAD_CERT.steps.map((s) => <li key={s}>{s}</li>)}</ol></dd>
+        <dt>Sources</dt>
+        <dd>
+          <ul className="pe-links">
+            {BEAD_CERT.sources.map((s) => <li key={s.url}><a href={s.url} target="_blank" rel="noopener noreferrer">{s.label}</a></li>)}
+          </ul>
+          <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>Summaries of the rule text. UBC's final subgrant agreement may differ from the draft: read the executed one before you seal.</p>
+        </dd>
+      </dl>
+    </Card>
   );
 }
 

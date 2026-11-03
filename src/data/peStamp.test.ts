@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_PE_LICENSES, SEAL_SPECS } from './peStamp';
+import { BEAD_CERT, CERT_VS_SEAL, DEFAULT_PE_LICENSES, SEAL_SPECS } from './peStamp';
 import { PRIVATE_SETTING_KEYS } from '@/lib/types';
 import { seedData } from '@/store/seed';
 
@@ -17,6 +17,14 @@ describe('PE stamp reference', () => {
     expect(SEAL_SPECS[0].size).toContain('1-1/2 inch minimum');
     expect(SEAL_SPECS[1].size).toContain('1-5/8 inch');
     expect(SEAL_SPECS[0].wording).toContain('"State of Utah"');
+  });
+
+  it('explains grant certification as per project, with https sources', () => {
+    expect(CERT_VS_SEAL.map((c) => c.term)).toEqual(['Certification', 'Seal (stamp)', 'Both together']);
+    expect(BEAD_CERT.summary).toMatch(/per subgrant project/);
+    expect(BEAD_CERT.scope.join(' ')).toMatch(/Never per location/);
+    expect(BEAD_CERT.steps.length).toBeGreaterThanOrEqual(5);
+    for (const s of BEAD_CERT.sources) expect(s.url).toMatch(/^https:\/\//);
   });
 
   it('keeps your licenses with the private settings, seeded from the defaults', () => {
