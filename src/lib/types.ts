@@ -78,10 +78,14 @@ export interface Sheet {
   notes: string;
 }
 
+export type ProjectKind = 'plan-set' | 'report';
+
 export interface Project {
   id: string;
   deletedAt?: string | null;
   updatedBy?: string;
+  /** A plan set (the default) goes through the sheet index, CAD workflow and QC; a report or grant package (BEAD) is reviewed and certified as one document. */
+  kind?: ProjectKind;
   number: string; // titleblock project number, e.g. 26-0001
   name: string;
   client: string;

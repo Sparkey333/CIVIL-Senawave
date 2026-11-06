@@ -40,6 +40,8 @@ export default function ProjectDetail() {
   const openRedlines = data.redlines.filter((r) => r.projectId === project.id && r.status === 'open').length;
   const wfDone = WORKFLOW_STEPS.filter((s) => project.workflow[s.id]).length;
   const qcDone = QC_CHECKLIST.filter((s) => project.qc[s.id]).length;
+  const isReport = project.kind === 'report';
+  const shown: Tab = isReport && ['sheets', 'workflow', 'qc'].includes(tab) ? 'overview' : tab;
 
   return (
     <>
@@ -51,6 +53,7 @@ export default function ProjectDetail() {
             <span className="mono muted">{project.number || '—'}</span>
             <StatusBadge status={project.status} />
             {project.funding && <Badge kind="info">{project.funding}</Badge>}
+            {isReport && <Badge title="A report or grant package: reviewed and certified as one document">report</Badge>}
             {project.sample && <Badge title="Seeded demo data — delete from Settings">sample</Badge>}
           </div>
           <h1 style={{ marginTop: 4 }}>{project.name || 'Untitled project'}</h1>
@@ -69,21 +72,25 @@ export default function ProjectDetail() {
       </div>
 
       <Tabs<Tab>
-        active={tab}
+        active={shown}
         onChange={setTab}
         tabs={[
           { id: 'overview', label: 'Overview' },
-          { id: 'sheets', label: 'Sheet index', count: project.sheets.length },
-          { id: 'workflow', label: 'Workflow', count: wfDone },
-          { id: 'qc', label: 'QC checklist', count: qcDone },
-          { id: 'prints', label: 'Prints & reviews', count: openRedlines },
+          ...(isReport
+            ? []
+            : [
+                { id: 'sheets' as const, label: 'Sheet index', count: project.sheets.length },
+                { id: 'workflow' as const, label: 'Workflow', count: wfDone },
+                { id: 'qc' as const, label: 'QC checklist', count: qcDone },
+              ]),
+          { id: 'prints', label: isReport ? 'Issues & reviews' : 'Prints & reviews', count: openRedlines },
           { id: 'permits', label: 'Permits', count: permitsCount },
           { id: 'notes', label: 'Notes', count: notesCount },
           { id: 'time', label: 'Time' },
         ]}
       />
 
-      {tab === 'overview' && (
+      {shown === 'overview' && (
         <Overview
           project={project}
           onDelete={() => {
@@ -94,18 +101,18 @@ export default function ProjectDetail() {
           }}
         />
       )}
-      {tab === 'sheets' && <Sheets project={project} />}
-      {tab === 'workflow' && <Workflow project={project} />}
-      {tab === 'qc' && <Qc project={project} />}
-      {tab === 'prints' && <PrintsTab project={project} prints={data.prints} redlines={data.redlines} />}
-      {tab === 'permits' && <Permits project={project} permits={data.permits.filter((p) => p.projectId === project.id)} />}
-      {tab === 'notes' && (
+      {shown === 'sheets' && <Sheets project={project} />}
+      {shown === 'workflow' && <Workflow project={project} />}
+      {shown === 'qc' && <Qc project={project} />}
+      {shown === 'prints' && <PrintsTab project={project} prints={data.prints} redlines={data.redlines} />}
+      {shown === 'permits' && <Permits project={project} permits={data.permits.filter((p) => p.projectId === project.id)} />}
+      {shown === 'notes' && (
         <>
           <Card title="Add a note to this project"><NoteComposer projectId={project.id} /></Card>
           <NoteList projectId={project.id} />
         </>
       )}
-      {tab === 'time' && (
+      {shown === 'time' && (
         <Card title="Time on this project"><TimeTable projectId={project.id} /></Card>
       )}
     </>

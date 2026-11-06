@@ -16,6 +16,12 @@ export function ProjectForm({ value, onChange }: { value: Project; onChange: (pa
       <Field label="Project name" required className="span-2">
         <input value={value.name} onChange={(e) => set('name', e.target.value)} placeholder="Corridor / route name as it appears on the titleblock" />
       </Field>
+      <Field label="Kind" hint="A plan set gets the sheet index, CAD workflow and QC; a report or grant package is reviewed and certified as one document">
+        <select value={value.kind || 'plan-set'} onChange={(e) => set('kind', e.target.value as Project['kind'])}>
+          <option value="plan-set">Plan set</option>
+          <option value="report">Report / grant package</option>
+        </select>
+      </Field>
       <Field label="Status">
         <select value={value.status} onChange={(e) => set('status', e.target.value as Project['status'])}>
           {PROJECT_STATUSES.map((s) => (

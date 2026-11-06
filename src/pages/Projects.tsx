@@ -97,8 +97,8 @@ export default function Projects() {
                     <td>{[p.municipality, p.county && `${p.county} Co.`].filter(Boolean).join(', ') || '—'}</td>
                     <td><StatusBadge status={p.status} /></td>
                     <td className="num">{sheetsQc}/{p.sheets.length}</td>
-                    <td style={{ minWidth: 120 }}><Progress value={wf} total={WORKFLOW_STEPS.length} /></td>
-                    <td style={{ minWidth: 120 }}><Progress value={qc} total={QC_CHECKLIST.length} /></td>
+                    <td style={{ minWidth: 120 }}>{p.kind === 'report' ? <span className="muted">report</span> : <Progress value={wf} total={WORKFLOW_STEPS.length} />}</td>
+                    <td style={{ minWidth: 120 }}>{p.kind === 'report' ? <span className="muted">reviewed as one document</span> : <Progress value={qc} total={QC_CHECKLIST.length} />}</td>
                     <td style={{ fontSize: 12.5 }}>{p.engineer || '—'}<br /><span className="muted">{p.pm || '—'}</span></td>
                     <td className="nowrap">{fmtDate(p.dueDate)}</td>
                   </tr>

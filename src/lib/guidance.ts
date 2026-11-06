@@ -29,6 +29,10 @@ function stageFlags(s: Project['sheets'][number]) {
 export function nextStepFor(p: Project): NextStep {
   const base = `/projects/${p.id}`;
   if (p.status === 'closed') return { kind: 'done', title: 'Closed', detail: 'Nothing to do.', to: base };
+  if (p.kind === 'report') {
+    if (p.status === 'sealed' || p.status === 'construction') return { kind: 'done', title: 'Certified and sealed', detail: 'Track the milestone and closeout reviews here.', to: `${base}?tab=permits` };
+    return { kind: 'review', title: 'Review the package and log the redlines', detail: 'A report or grant package: no sheet index or CAD workflow. Log each issue of the PDF as a print, one redline per finding; certify and seal when every blocking redline is addressed.', to: `${base}?tab=prints`, guideTo: '/pe-stamp' };
+  }
   if (!p.routeLengthFt) return { kind: 'route', title: 'Enter the route length', detail: 'Dissolved route length in feet drives the sheet estimate (÷ 685).', to: base, guideTo: '/reference/arcgis' };
 
   const firstOpen: WorkflowStep | undefined = WORKFLOW_STEPS.find((s) => !p.workflow[s.id]);

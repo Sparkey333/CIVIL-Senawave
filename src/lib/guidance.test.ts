@@ -4,6 +4,14 @@ import { fluenceProject, sampleProject, seedData } from '@/store/seed';
 import { QC_CHECKLIST, WORKFLOW_STEPS } from '@/data/guide';
 
 describe('nextStepFor', () => {
+  it('sends a report or grant package straight to review, with no sheet or CAD steps', () => {
+    const p = { ...fluenceProject(), kind: 'report' as const, routeLengthFt: null, workflow: {}, sheets: [], status: 'review' as const };
+    const s = nextStepFor(p);
+    expect(s.kind).toBe('review');
+    expect(s.to).toMatch(/tab=prints$/);
+    expect(nextStepFor({ ...p, status: 'sealed' }).kind).toBe('done');
+  });
+
   it('asks for the route length first', () => {
     const p = { ...fluenceProject(), routeLengthFt: null };
     expect(nextStepFor(p).kind).toBe('route');
