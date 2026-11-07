@@ -121,7 +121,7 @@ src/
     nextSteps.ts        the next-baby-steps list · guidance.ts (setup checklist, plan-production step)
     roles.ts · auth.tsx · google.ts · drive.ts · sync.ts · merge.ts · archive.ts · prints.ts · …
   data/         guide.ts (Plan Production Guide Rev 5) · fluencePrints.ts · fluenceDrive.ts · company.ts · revision.ts
-docs/           architecture.md · plan-production-guide.md · research-senawave.md · source/
+docs/           architecture.md · plan-production-guide.md · research-senawave.md · bead-pe-review-2026-11.md · bead-review/ · source/
 ```
 
 ## Keeping it current
