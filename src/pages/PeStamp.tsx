@@ -85,6 +85,8 @@ function GrantCertification() {
         <dt>What to seal</dt><dd><ul>{BEAD_CERT.form.map((w) => <li key={w}>{w}</li>)}</ul></dd>
         <dt>Per project, not per location</dt><dd><ul>{BEAD_CERT.scope.map((w) => <li key={w}>{w}</li>)}</ul></dd>
         <dt>Steps</dt><dd><ol className="pe-steps">{BEAD_CERT.steps.map((s) => <li key={s}>{s}</li>)}</ol></dd>
+        <dt>Review checklist</dt><dd><ol className="pe-steps">{BEAD_CERT.review.map((s) => <li key={s}>{s}</li>)}</ol></dd>
+        <dt>Rules learned</dt><dd><ul>{BEAD_CERT.lessons.map((w) => <li key={w}>{w}</li>)}</ul></dd>
         <dt>Sources</dt>
         <dd>
           <ul className="pe-links">

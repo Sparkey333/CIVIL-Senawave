@@ -24,6 +24,9 @@ describe('PE stamp reference', () => {
     expect(BEAD_CERT.summary).toMatch(/per subgrant project/);
     expect(BEAD_CERT.scope.join(' ')).toMatch(/Never per location/);
     expect(BEAD_CERT.steps.length).toBeGreaterThanOrEqual(5);
+    expect(BEAD_CERT.review.length).toBeGreaterThanOrEqual(10);
+    expect(BEAD_CERT.review[0]).toMatch(/Final document/);
+    expect(BEAD_CERT.lessons.join(' ')).toMatch(/optical length/);
     for (const s of BEAD_CERT.sources) expect(s.url).toMatch(/^https:\/\//);
   });
 
